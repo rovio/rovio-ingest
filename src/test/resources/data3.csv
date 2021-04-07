@@ -1,0 +1,3 @@
+date,string_column,string_date_column,boolean_column,long_column,double_column
+2019-10-16 00:01:00,US,2019-10-16,true,10,100.0
+2019-10-16 00:02:00,US,2019-10-16,false,-1,-1

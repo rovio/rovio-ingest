@@ -1,0 +1,4 @@
+.pychuck
+*.egg-info/
+dependency-reduced-pom.xml
+target/
