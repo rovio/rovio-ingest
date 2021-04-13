@@ -166,6 +166,8 @@ df.repartition_by_druid_segment_size(partition_col) \
 
 ### Scala
 
+Maven: see [Java](#java).
+
 A `Dataset[Row]` extension is provided to repartition the dataset for the `DruidSource` Datasource.
 
 First, set the following spark conf:
@@ -201,6 +203,35 @@ ds.repartitionByDruidSegmentSize("date")
 This is a minimal example. See [Write options](#write-options) for more.
 
 ### Java
+
+Maven (for a full example, see [examples/rovio-ingest-maven-example](examples/rovio-ingest-maven-example)):
+
+    <dependencies>
+        <dependency>
+            <groupId>com.rovio.ingest</groupId>
+            <artifactId>rovio-ingest</artifactId>
+            <version>1.0.0_spark_3.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.11.1</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>oss.sonatype.org-snapshot</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
 A `DruidDataset` wrapper class is provided to repartition the dataset for the `DruidSource` DataSource.
 
