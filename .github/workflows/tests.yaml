@@ -1,0 +1,30 @@
+name: tests
+on: [pull_request]
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Environment variables
+        run: echo "SPARK_LOCAL_IP=localhost" >> $GITHUB_ENV
+      - uses: actions/checkout@v2
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '8'
+      - name: Run maven tests
+        run: mvn -B test --file pom.xml
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install Poetry
+        run: pip install poetry==1.1.4
+      - name: Install libkrb5-dev
+        run: sudo apt-get install libkrb5-dev  # This is needed for installing pykerberos
+      - name: Install python dependencies
+        run: poetry install
+        working-directory: ./python
+      - name: Run python tests
+        run: poetry run pytest
+        working-directory: ./python
