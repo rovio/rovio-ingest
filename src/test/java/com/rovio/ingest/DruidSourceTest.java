@@ -259,7 +259,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
     }
 
     @Test
-    public void failWhenIncrementalAndGranularityChanges() {
+    public void shouldSaveWhenIncrementalAndGranularityChanges() throws IOException {
         Dataset<Row> dataset = loadCsv(spark, "/data.csv");
         List<Column> columns = Lists.newArrayList(unix_timestamp(column("date")).multiply(1000), lit("DAY"));
         dataset = dataset.withColumn("__partition",
@@ -276,6 +276,11 @@ public class DruidSourceTest extends DruidSourceBaseTest {
                 .options(options)
                 .save();
 
+        Interval interval = new Interval(DateTime.parse("2019-10-16T00:00:00Z"), DateTime.parse("2019-10-18T00:00:00Z"));
+        String firstVersion = DateTime.now(ISOChronology.getInstanceUTC()).toString();
+        verifySegmentPath(Paths.get(testFolder.toString(), DATA_SOURCE), interval, firstVersion, 1, false);
+        verifySegmentTable(interval, firstVersion, true, 2);
+
         dataset = loadCsv(spark, "/data2.csv");
         dataset.show(false);
         columns = Lists.newArrayList(unix_timestamp(column("date")).multiply(1000), lit("MONTH"));
@@ -288,13 +293,18 @@ public class DruidSourceTest extends DruidSourceBaseTest {
 
         DateTimeUtils.setCurrentMillisFixed(VERSION_TIME_MILLIS + 60_000);
         options.put(SEGMENT_GRANULARITY, "MONTH");
-        IllegalStateException thrown = assertThrows(IllegalStateException.class,
-                () -> dataset2.write()
-                        .format("com.rovio.ingest.DruidSource")
-                        .mode(SaveMode.Overwrite)
-                        .options(options)
-                        .save());
-        assertThat(thrown.getMessage(), containsString("Found a used segment with granularity mismatch"));
+        dataset2.write()
+                .format("com.rovio.ingest.DruidSource")
+                .mode(SaveMode.Overwrite)
+                .options(options)
+                .save();
+        interval = new Interval(DateTime.parse("2019-10-16T00:00:00Z"), DateTime.parse("2019-10-18T00:00:00Z"));
+        verifySegmentTable(interval, firstVersion, true, 2);
+
+        String secondVersion = DateTime.now(ISOChronology.getInstanceUTC()).toString();
+        interval = new Interval(DateTime.parse("2019-10-01T00:00:00Z"), DateTime.parse("2019-11-01T00:00:00Z"));
+        verifySegmentTable(interval, secondVersion, true, 1);
+        verifySegmentPath(Paths.get(testFolder.toString(), DATA_SOURCE), interval, secondVersion, 1, true);
     }
 
     @Test

@@ -311,7 +311,7 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 | `druid.segment.max_rows` | Max number of rows per segment | `5000000` |
 | `druid.memory.max_rows` | Max number of rows to keep in memory in spark data writer | `75000` |
 | `druid.segment_storage.type` | Type of Deep Storage to use. Allowed values: `s3`, `local`. | `s3` |
-| `druid.datasource.init` | Boolean flag for (re-)initializing Druid datasource. If `false`, `druid.segment_granularity` must match with the existing segments in the target datasource. | `false` |
+| `druid.datasource.init` | Boolean flag for (re-)initializing Druid datasource. If `true`, any pre-existing segments for the datasource is marked as unused. | `false` |
 | `druid.bitmap_factory` | Compression format for bitmap indexes. Possible values: `concise`, `roaring`. For type `roaring`, the boolean property compressRunOnSerialization is always set to `true`. `rovio-ingest` uses `concise` by default regardless of Druid library version. | `concise` |
 | `druid.segment.rollup` | Whether to rollup data during ingestion | `true` |
 
