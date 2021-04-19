@@ -105,6 +105,11 @@ satisfies the requirements of `DruidSource`
 
 ### PySpark
 
+Install the latest pre-release version:
+```
+pip install 'rovio-ingest>0.0.0' --pre
+```
+
 First, set the following spark conf:
 
 ```python
