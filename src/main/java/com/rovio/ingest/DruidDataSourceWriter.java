@@ -41,7 +41,7 @@ class DruidDataSourceWriter implements BatchWrite {
     DruidDataSourceWriter(StructType schema, WriterContext param) {
         this.param = param;
         this.segmentSpec = SegmentSpec.from(param.getDataSource(),param.getTimeColumn(), param.getExcludedDimensions(),
-                param.getSegmentGranularity(), param.getQueryGranularity(), schema, param.isRollup());
+                param.getSegmentGranularity(), param.getQueryGranularity(), schema, param.isRollup(), param.getMetricsSpec());
         this.metadataUpdater = new MetadataUpdater(param);
         this.metadataUpdater.checkGranularity(segmentSpec.getDataSchema().getGranularitySpec().getSegmentGranularity());
     }

@@ -56,6 +56,7 @@ public class WriterContext implements Serializable {
     private final boolean initDataSource;
     private final String version;
     private final boolean rollup;
+    private final String metricsSpec;
 
     private WriterContext(CaseInsensitiveStringMap options, String version) {
         this.dataSource = getOrThrow(options, ConfKeys.DATA_SOURCE);
@@ -93,6 +94,7 @@ public class WriterContext implements Serializable {
 
         this.initDataSource = options.getBoolean(ConfKeys.DATASOURCE_INIT, false);
         this.rollup = options.getBoolean(ConfKeys.SEGMENT_ROLLUP, true);
+        this.metricsSpec = options.getOrDefault(ConfKeys.METRICS_SPEC, null);
 
         this.version = version;
     }
@@ -189,11 +191,16 @@ public class WriterContext implements Serializable {
         return rollup;
     }
 
-    public static class ConfKeys {
+    public String getMetricsSpec() {
+        return metricsSpec;
+    }
+
+  public static class ConfKeys {
         public static final String DATASOURCE_INIT = "druid.datasource.init";
         // Segment config
         public static final String DATA_SOURCE = "druid.datasource";
         public static final String TIME_COLUMN = "druid.time_column";
+        public static final String METRICS_SPEC = "druid.metrics_spec";
         public static final String SEGMENT_GRANULARITY = "druid.segment_granularity";
         public static final String QUERY_GRANULARITY = "druid.query_granularity";
         public static final String BITMAP_FACTORY = "druid.bitmap_factory";
