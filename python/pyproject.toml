@@ -21,6 +21,7 @@ name = "rovio-ingest"
 # - Git tags are used to create new releases
 version = "0.0.1"
 description = ""
+license = "Apache-2.0"
 authors = ["Vivek Balakrishnan <vivek.balakrishnan@rovio.com>", "Juho Autio <juho.autio@rovio.com>"]
 
 [tool.poetry.dependencies]
