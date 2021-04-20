@@ -16,7 +16,10 @@
 
 [tool.poetry]
 name = "rovio-ingest"
-version = "1.0.0"
+# NOTE: This version is ignored.
+# - Versions are managed by poetry-dynamic-versioning
+# - Git tags are used to create new releases
+version = "0.0.1"
 description = ""
 authors = ["Vivek Balakrishnan <vivek.balakrishnan@rovio.com>", "Juho Autio <juho.autio@rovio.com>"]
 
@@ -32,6 +35,22 @@ jupyter = "^1.0.0"
 sparkmagic = "^0.15.0"
 boto3 = "*"
 safety = "^1.10.3"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+metadata = true
+dirty = true
+vcs = "git"
+style = "pep440"
+format-jinja = """
+    {%- if distance == 0 -%}
+        {{ serialize_pep440(base, stage, revision) }}
+    {%- elif revision is not none -%}
+        {{ serialize_pep440(base, stage, revision + 1, dev=distance) }}
+    {%- else -%}
+        {{ serialize_pep440(bump_version(base), stage, revision, dev=distance) }}
+    {%- endif -%}
+ """
 
 [build-system]
 requires = ["poetry>=0.12"]

@@ -105,17 +105,23 @@ satisfies the requirements of `DruidSource`
 
 ### PySpark
 
+Install the latest pre-release version:
+```
+pip install 'rovio-ingest>0.0.0' --pre
+```
+
 First, set the following spark conf:
 
 ```python
-.conf("spark.jars",
-      "s3://my-bucket/my/prefix/rovio-ingest-1.0-SNAPSHOT.jar") \
-
+.conf("spark.jars.repositories",
+      "https://s01.oss.sonatype.org/content/repositories/snapshots") \
+.conf("spark.jars.packages",
+      "com.rovio.ingest:rovio-ingest:1.0.0_spark_3.0.1-SNAPSHOT") \
 .conf("spark.submit.pyFiles",
       "s3://my-bucket/my/prefix/rovio_ingest.zip")
 ```
 
-This is assuming that you [built from source](#building-from-source) and copied the packages to s3.
+This is assuming that you [built a python zip](#building-rovio_ingest-python) and copied it to s3.
 
 ```python
 from rovio_ingest import DRUID_SOURCE
@@ -166,15 +172,16 @@ df.repartition_by_druid_segment_size(partition_col) \
 
 ### Scala
 
+Maven: see [Java](#java).
+
 A `Dataset[Row]` extension is provided to repartition the dataset for the `DruidSource` Datasource.
 
-First, set the following spark conf:
+For an interactive spark session you can set the following spark conf:
 
 ```scala
-("spark.jars", "s3://my-bucket/my/prefix/rovio-ingest-1.0-SNAPSHOT.jar")
+("spark.jars.repositories", "https://s01.oss.sonatype.org/content/repositories/snapshots"),
+("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.0.0_spark_3.0.1-SNAPSHOT")
 ```
-
-This is assuming that you [built from source](#building-rovio-ingest-jar) and copied the jar to s3.
 
 ```scala
 import org.apache.spark.sql.{Dataset, Row, SaveMode, SparkSession}
@@ -202,15 +209,36 @@ This is a minimal example. See [Write options](#write-options) for more.
 
 ### Java
 
+Maven (for a full example, see [examples/rovio-ingest-maven-example](examples/rovio-ingest-maven-example)):
+
+    <dependencies>
+        <dependency>
+            <groupId>com.rovio.ingest</groupId>
+            <artifactId>rovio-ingest</artifactId>
+            <version>1.0.0_spark_3.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.11.1</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>oss.sonatype.org-snapshot</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
 A `DruidDataset` wrapper class is provided to repartition the dataset for the `DruidSource` DataSource.
-
-First, set the following spark conf:
-
-```java
-("spark.jars", "s3://my-bucket/my/prefix/rovio-ingest-1.0-SNAPSHOT.jar")
-```
-
-This is assuming that you [built from source](#building-rovio-ingest-jar) and copied the jar to s3.
 
 ```java
 import org.apache.spark.sql.Dataset;
@@ -341,9 +369,7 @@ To build the jar package:
 
 The recommended way is to build a shaded jar and use it.
 
-Another option is to depend on `rovio-ingest` as a maven module (or use the plain jar), but there may
-be version conflicts between maven dependencies. If you'd still like to do it that way, see
-[this notebook](python/notebooks/druid_ingestion_test.ipynb) for guidance.
+To test the jar in practice, see [this notebook](python/notebooks/druid_ingestion_test.ipynb) as an example.
 
 #### Building rovio_ingest (python)
 
