@@ -2,3 +2,4 @@
 *.egg-info/
 dependency-reduced-pom.xml
 target/
+python/dist/
