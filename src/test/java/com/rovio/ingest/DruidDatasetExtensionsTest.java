@@ -18,7 +18,6 @@ package com.rovio.ingest;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Table;
 import com.rovio.ingest.extensions.java.DruidDatasetExtensions;
-import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
@@ -150,7 +149,7 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
     }
 
     @Test
-    public void saveFailsWithIncrementalAndGranularityChanges() {
+    public void saveWithIncrementalAndGranularityChanges() throws IOException {
         Dataset<Row> dataset = loadCsv(spark, "/data.csv");
         dataset = DruidDatasetExtensions
                 .repartitionByDruidSegmentSize(dataset, "date", "DAY", 5000000, false);
@@ -162,6 +161,11 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
                 .options(options)
                 .save();
 
+        Interval interval = new Interval(DateTime.parse("2019-10-16T00:00:00Z"), DateTime.parse("2019-10-18T00:00:00Z"));
+        String firstVersion = DateTime.now(ISOChronology.getInstanceUTC()).toString();
+        verifySegmentPath(Paths.get(testFolder.toString(), DATA_SOURCE), interval, firstVersion, 1, false);
+        verifySegmentTable(interval, firstVersion, true, 2);
+
         Dataset<Row> dataset2 = loadCsv(spark, "/data2.csv");
         dataset2.show(false);
         dataset2 = DruidDatasetExtensions
@@ -171,14 +175,19 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
         DateTimeUtils.setCurrentMillisFixed(VERSION_TIME_MILLIS + 60_000);
         options.put(SEGMENT_GRANULARITY, "MONTH");
 
-        DataFrameWriter<Row> writer = dataset2.write()
+        dataset2.write()
                 .format(DruidSource.FORMAT)
                 .mode(SaveMode.Overwrite)
-                .options(options);
+                .options(options)
+                .save();
 
-        Throwable thrown = assertThrows(IllegalStateException.class, writer::save);
-        assertEquals(thrown.getMessage(),
-                "Found a used segment with granularity mismatch, granularity={type=period, period=P1M, timeZone=UTC, origin=null}, start=2019-10-16T00:00:00.000Z, end=2019-10-17T00:00:00.000Z, expected end=2019-11-16T00:00:00.000Z");
+        interval = new Interval(DateTime.parse("2019-10-16T00:00:00Z"), DateTime.parse("2019-10-18T00:00:00Z"));
+        verifySegmentTable(interval, firstVersion, true, 2);
+
+        String secondVersion = DateTime.now(ISOChronology.getInstanceUTC()).toString();
+        interval = new Interval(DateTime.parse("2019-10-01T00:00:00Z"), DateTime.parse("2019-11-01T00:00:00Z"));
+        verifySegmentTable(interval, secondVersion, true, 1);
+        verifySegmentPath(Paths.get(testFolder.toString(), DATA_SOURCE), interval, secondVersion, 1, true);
     }
 
     @Test
