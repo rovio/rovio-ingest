@@ -26,6 +26,7 @@ class ConfKeys:
     # Segment config
     DATA_SOURCE = "druid.datasource"
     TIME_COLUMN = "druid.time_column"
+    METRICS_SPEC = "druid.metrics_spec"
     SEGMENT_GRANULARITY = "druid.segment_granularity"
     QUERY_GRANULARITY = "druid.query_granularity"
     BITMAP_FACTORY = "druid.bitmap_factory"

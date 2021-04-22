@@ -18,7 +18,9 @@ package com.rovio.ingest;
 import com.rovio.ingest.model.SegmentSpec;
 import org.apache.druid.data.input.impl.DimensionSchema;
 import org.apache.druid.java.util.common.granularity.Granularity;
+import org.apache.druid.query.aggregation.DoubleMinAggregatorFactory;
 import org.apache.druid.query.aggregation.DoubleSumAggregatorFactory;
+import org.apache.druid.query.aggregation.LongMaxAggregatorFactory;
 import org.apache.druid.query.aggregation.LongSumAggregatorFactory;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
@@ -27,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -38,7 +41,7 @@ public class SegmentSpecTest {
     @Test
     public void shouldThrowErrorForMissingDataSource() {
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", new StructType(), true));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", new StructType(), true, null));
     }
 
     @Test
@@ -47,7 +50,7 @@ public class SegmentSpecTest {
                 .add("country", DataTypes.StringType)
                 .add("metric1", DataTypes.LongType);
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null));
     }
 
     @Test
@@ -60,7 +63,7 @@ public class SegmentSpecTest {
                 .add("metric1", DataTypes.LongType)
                 .add("metric2", DataTypes.DoubleType);
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null));
     }
 
     @Test
@@ -69,7 +72,7 @@ public class SegmentSpecTest {
                 .add("__time", DataTypes.TimestampType)
                 .add("country", DataTypes.StringType);
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null));
     }
 
     @Test
@@ -78,7 +81,7 @@ public class SegmentSpecTest {
                 .add("__time", DataTypes.TimestampType)
                 .add("metric", DataTypes.LongType);
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null));
     }
 
     @Test
@@ -86,7 +89,7 @@ public class SegmentSpecTest {
         StructType schema = new StructType()
                 .add("city", DataTypes.CalendarIntervalType);
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null));
     }
 
     @Test
@@ -94,7 +97,7 @@ public class SegmentSpecTest {
         StructType schema = new StructType()
                 .add("complex", new StructType().add("id", DataTypes.StringType));
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null));
     }
 
     @Test
@@ -105,7 +108,7 @@ public class SegmentSpecTest {
                 .add("city", DataTypes.StringType)
                 .add("metric1", DataTypes.LongType)
                 .add("metric2", DataTypes.DoubleType);
-        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true);
+        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null);
 
         assertEquals("temp", spec.getDataSchema().getDataSource());
         assertEquals("__time", spec.getTimeColumn());
@@ -135,7 +138,7 @@ public class SegmentSpecTest {
                 .add("city", DataTypes.StringType)
                 .add("metric1", DataTypes.LongType)
                 .add("metric2", DataTypes.DoubleType);
-        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.singletonList("updateTime"), "DAY", "DAY", schema, true);
+        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.singletonList("updateTime"), "DAY", "DAY", schema, true, null);
 
         assertEquals("temp", spec.getDataSchema().getDataSource());
         assertEquals("__time", spec.getTimeColumn());
@@ -163,7 +166,7 @@ public class SegmentSpecTest {
                 .add("city", DataTypes.StringType)
                 .add("metric1", DataTypes.LongType)
                 .add("metric2", DataTypes.DoubleType);
-        SegmentSpec spec = SegmentSpec.from("temp", "updateTime",  Collections.emptyList(), "DAY", "DAY", schema, true);
+        SegmentSpec spec = SegmentSpec.from("temp", "updateTime",  Collections.emptyList(), "DAY", "DAY", schema, true, null);
 
         assertEquals("temp", spec.getDataSchema().getDataSource());
         assertEquals("updateTime", spec.getTimeColumn());
@@ -192,7 +195,7 @@ public class SegmentSpecTest {
                 .add("city", DataTypes.StringType)
                 .add("metric1", DataTypes.LongType)
                 .add("metric2", DataTypes.DoubleType);
-        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, false);
+        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, false, null);
 
         assertEquals("temp", spec.getDataSchema().getDataSource());
         assertEquals("__time", spec.getTimeColumn());
@@ -208,6 +211,76 @@ public class SegmentSpecTest {
         assertTrue(dimensions.stream().allMatch(d -> DimensionSchema.ValueType.STRING == d.getValueType()));
 
         assertFalse(spec.getDataSchema().getGranularitySpec().isRollup());
+
+        assertEquals(Granularity.fromString("DAY"), spec.getDataSchema().getGranularitySpec().getSegmentGranularity());
+        assertEquals(Granularity.fromString("DAY"), spec.getDataSchema().getGranularitySpec().getQueryGranularity());
+    }
+
+    @Test
+    public void shouldFailWhenMetricsSpecIsInvalidJson() {
+        StructType schema = new StructType()
+                .add("__time", DataTypes.TimestampType)
+                .add("country", DataTypes.StringType)
+                .add("city", DataTypes.StringType)
+                .add("metric1", DataTypes.LongType)
+                .add("metric2", DataTypes.DoubleType);
+        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, "{}");
+        assertThrows(IllegalArgumentException.class,
+                spec::getDataSchema);
+    }
+
+    @Test
+    public void shouldSupportMetricsSpecAsJson() {
+        StructType schema = new StructType()
+                .add("updateTime", DataTypes.TimestampType)
+                .add("country", DataTypes.StringType)
+                .add("city", DataTypes.StringType)
+                .add("metric1", DataTypes.LongType)
+                .add("metric2", DataTypes.DoubleType);
+        String metricsSpec = "[" +
+                    "{\n" +
+                    "   \"type\": \"longSum\",\n" +
+                    "   \"name\": \"metric1\",\n" +
+                    "   \"fieldName\": \"metric1\",\n" +
+                    "   \"expression\": null\n" +
+                    "},\n" +
+                    "{\n" +
+                    "   \"type\": \"doubleSum\",\n" +
+                    "   \"name\": \"metric2\",\n" +
+                    "   \"fieldName\": \"metric2\",\n" +
+                    "   \"expression\": null\n" +
+                    "},\n" +
+                    "{\n" +
+                    "   \"type\": \"longMax\",\n" +
+                    "   \"name\": \"metric1_max\",\n" +
+                    "   \"fieldName\": \"metric1\",\n" +
+                    "   \"expression\": null\n" +
+                    "},\n" +
+                    "{\n" +
+                    "   \"type\": \"doubleMin\",\n" +
+                    "   \"name\": \"metric2_min\",\n" +
+                    "   \"fieldName\": \"metric2\",\n" +
+                    "   \"expression\": null\n" +
+                    "}" +
+                "]";
+        SegmentSpec spec = SegmentSpec.from("temp", "updateTime",  Collections.emptyList(), "DAY", "DAY", schema, true, metricsSpec);
+
+        assertEquals("temp", spec.getDataSchema().getDataSource());
+        assertEquals("updateTime", spec.getTimeColumn());
+
+        assertEquals(4, spec.getDataSchema().getAggregators().length);
+        assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof LongSumAggregatorFactory && f.getName().equals("metric1") && Objects.equals(((LongSumAggregatorFactory) f).getFieldName(), "metric1")));
+        assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof DoubleSumAggregatorFactory && f.getName().equals("metric2") && Objects.equals(((DoubleSumAggregatorFactory) f).getFieldName(), "metric2")));
+        assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof LongMaxAggregatorFactory && f.getName().equals("metric1_max") && Objects.equals(((LongMaxAggregatorFactory) f).getFieldName(), "metric1")));
+        assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof DoubleMinAggregatorFactory && f.getName().equals("metric2_min") && Objects.equals(((DoubleMinAggregatorFactory) f).getFieldName(), "metric2")));
+
+        List<DimensionSchema> dimensions = spec.getDataSchema().getParser().getParseSpec().getDimensionsSpec().getDimensions();
+        assertEquals(2, dimensions.size());
+        List<String> expected = Arrays.asList("country", "city");
+        assertTrue(dimensions.stream().allMatch(d -> expected.contains(d.getName())));
+        assertTrue(dimensions.stream().allMatch(d -> DimensionSchema.ValueType.STRING == d.getValueType()));
+
+        assertTrue(spec.getDataSchema().getGranularitySpec().isRollup());
 
         assertEquals(Granularity.fromString("DAY"), spec.getDataSchema().getGranularitySpec().getSegmentGranularity());
         assertEquals(Granularity.fromString("DAY"), spec.getDataSchema().getGranularitySpec().getQueryGranularity());

@@ -15,9 +15,11 @@
  */
 package com.rovio.ingest.model;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.druid.data.input.impl.DimensionSchema;
 import org.apache.druid.data.input.impl.DimensionsSpec;
 import org.apache.druid.data.input.impl.InputRowParser;
@@ -56,8 +58,10 @@ public class SegmentSpec implements Serializable {
     private final Field partitionTime;
     private final Field partitionNum;
     private final boolean rollup;
+    private final String metricsSpec;
 
-    private SegmentSpec(String dataSource, String timeColumn, String segmentGranularity, String queryGranularity, List<Field> fields, Field partitionTime, Field partitionNum, boolean rollup) {
+    private SegmentSpec(String dataSource, String timeColumn, String segmentGranularity, String queryGranularity,
+                        List<Field> fields, Field partitionTime, Field partitionNum, boolean rollup, String metricsSpec) {
         this.dataSource = dataSource;
         this.timeColumn = timeColumn;
         this.segmentGranularity = segmentGranularity;
@@ -66,10 +70,12 @@ public class SegmentSpec implements Serializable {
         this.partitionTime = partitionTime;
         this.partitionNum = partitionNum;
         this.rollup = rollup;
+        this.metricsSpec = metricsSpec;
     }
 
     public static SegmentSpec from(String datasource, String timeColumn, List<String> excludedDimensions,
-                                   String segmentGranularity, String queryGranularity, StructType schema, boolean rollup) {
+                                   String segmentGranularity, String queryGranularity, StructType schema, boolean rollup,
+                                   String metricsSpec) {
         Preconditions.checkNotNull(datasource);
         Preconditions.checkNotNull(timeColumn);
         Preconditions.checkNotNull(excludedDimensions);
@@ -115,7 +121,7 @@ public class SegmentSpec implements Serializable {
                     String.format("Field with name \"%s\" should be long/int type, current type is %s", PARTITION_NUM_COLUMN_NAME, partitionNum.getAggregatorType().name()));
         }
 
-        return new SegmentSpec(datasource, timeColumn, segmentGranularity, queryGranularity, fields, partitionTime, partitionNum, rollup);
+        return new SegmentSpec(datasource, timeColumn, segmentGranularity, queryGranularity, fields, partitionTime, partitionNum, rollup, metricsSpec);
     }
 
     public String getTimeColumn() {
@@ -166,13 +172,25 @@ public class SegmentSpec implements Serializable {
 
     private AggregatorFactory[] getAggregators() {
         ImmutableList.Builder<AggregatorFactory> builder = ImmutableList.builder();
-        for (Field field : fields) {
-            String fieldName = field.getName();
-            AggregatorType dataAggregatorType = field.getAggregatorType();
-            if (dataAggregatorType == AggregatorType.DOUBLE) {
-                builder.add(new DoubleSumAggregatorFactory(fieldName, fieldName));
-            } else if (dataAggregatorType == AggregatorType.LONG) {
-                builder.add(new LongSumAggregatorFactory(fieldName, fieldName));
+        if (StringUtils.isNotBlank(metricsSpec)) {
+            List<AggregatorFactory> aggregatorFactories = null;
+            try {
+                aggregatorFactories = MAPPER.readValue(metricsSpec, new TypeReference<List<AggregatorFactory>>() {
+                });
+            } catch (JsonProcessingException e) {
+                throw new IllegalArgumentException(String.format("Failed to deserialise from metricsSpec=%s", metricsSpec), e);
+            }
+            builder.addAll(aggregatorFactories);
+        } else {
+            // Legacy code will be removed in future.
+            for (Field field : fields) {
+                String fieldName = field.getName();
+                AggregatorType dataAggregatorType = field.getAggregatorType();
+                if (dataAggregatorType == AggregatorType.DOUBLE) {
+                    builder.add(new DoubleSumAggregatorFactory(fieldName, fieldName));
+                } else if (dataAggregatorType == AggregatorType.LONG) {
+                    builder.add(new LongSumAggregatorFactory(fieldName, fieldName));
+                }
             }
         }
 

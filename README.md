@@ -277,32 +277,33 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 
 #### Required properties
 
-| Property | Description |
+| Property | Description |
 | --- |--- |
 | `druid.datasource` | Name of the target datasource in Druid |
 | `druid.time_column` | Name of the column in the Spark DataFrame to be translated as Druid `__time` interval. Must be of `TimestampType`. |
 | `druid.metastore.db.uri` | Druid Metadata Storage database URI |
 | `druid.metastore.db.username` | Druid Metadata Storage database username |
 | `druid.metastore.db.password` | Druid Metadata Storage database password |
+| `druid.metrics_spec` | List of metrics aggregation provided as json string, when not provided defaults to using sum aggregator for all numeric columns.|
 
 \+ Storage type specific properties depending on value of `druid.segment_storage.type`:
 
 1. **If Deep Storage is `s3` (default):**
 
-    | Property | Description |
+    | Property | Description |
     | --- |--- |
     | `druid.segment_storage.s3.bucket` | S3 bucket name for the Deep Storage | |
     | `druid.segment_storage.s3.basekey` | S3 key prefix for the Deep Storage. No trailing slashes. | |
 
 2. **If Deep Storage is `local`:**
 
-    | Property | Description |
+    | Property | Description |
     | --- |--- |
     | `druid.segment_storage.local.dir` | For local Deep Storage, absolute path to segment directory | |
 
 #### Optional properties
 
-| Property | Description | Default |
+| Property | Description | Default |
 | --- | --- | --- |
 | `druid.metastore.db.table.base` | Druid Metadata Storage database table prefix | `druid` |
 | `druid.segment_granularity` | Segment Granularity | `DAY` |
