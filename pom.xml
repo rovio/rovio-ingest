@@ -25,6 +25,27 @@
     <artifactId>rovio-ingest</artifactId>
     <version>1.0.1_spark_3.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
+    <name>rovio-ingest</name>
+    <description>An implementation of the DatasourceV2 interface of Apache Spark™ for writing Spark Datasets to Apache Druid™</description>
+    <url>https://github.com/rovio/rovio-ingest</url>
+    <scm>
+        <url>https://github.com/rovio/rovio-ingest.git</url>
+    </scm>
+    <licenses>
+        <license>
+            <name>Apache-2.0 License</name>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Vivek Balakrishnan</name>
+            <email>vivek.balakrishnan@rovio.com</email>
+        </developer>
+        <developer>
+            <name>Juho Autio</name>
+            <email>juho.autio@rovio.com</email>
+        </developer>
+    </developers>
 
     <properties>
         <druid.version>0.13.0-incubating</druid.version>
