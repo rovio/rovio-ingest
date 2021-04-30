@@ -105,23 +105,36 @@ satisfies the requirements of `DruidSource`
 
 ### PySpark
 
-Install the latest pre-release version:
+#### Installing the python module
+
+Install the latest stable release:
+```
+pip install rovio-ingest
+```
+
+Alternatively, install the latest pre-release version:
 ```
 pip install 'rovio-ingest>0.0.0' --pre
 ```
 
-First, set the following spark conf:
+If you use pip to install the python module, you need to do it separately on the Spark cluster.
 
-```python
-.conf("spark.jars.repositories",
-      "https://s01.oss.sonatype.org/content/repositories/snapshots") \
-.conf("spark.jars.packages",
-      "com.rovio.ingest:rovio-ingest:1.0.0_spark_3.0.1-SNAPSHOT") \
+A more isolated alternative is to [build a python zip](#building-rovio_ingest-python) and copy it to s3, then include it in pyFiles. For example:
+```
 .conf("spark.submit.pyFiles",
       "s3://my-bucket/my/prefix/rovio_ingest.zip")
 ```
 
-This is assuming that you [built a python zip](#building-rovio_ingest-python) and copied it to s3.
+#### Spark configuration
+
+Set the following spark conf:
+
+```python
+.conf("spark.jars.packages",
+      "com.rovio.ingest:rovio-ingest:1.0.1_spark_3.0.1") \
+```
+
+#### PySpark job example
 
 ```python
 from rovio_ingest import DRUID_SOURCE
@@ -145,9 +158,9 @@ df.repartition_by_druid_segment_size(partition_col) \
     .save()
 ```
 
-There using imported constants for safety.
+This is using imported constants for safety.
 
-For clarity, same code with plain string keys:
+For clarity, below is the same code with plain string keys:
 
 ```python
 from rovio_ingest.extensions.dataframe_extension import add_dataframe_druid_extension
@@ -179,8 +192,14 @@ A `Dataset[Row]` extension is provided to repartition the dataset for the `Druid
 For an interactive spark session you can set the following spark conf:
 
 ```scala
+("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.0.1_spark_3.0.1")
+```
+
+To use a snapshot version:
+
+```scala
 ("spark.jars.repositories", "https://s01.oss.sonatype.org/content/repositories/snapshots"),
-("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.0.0_spark_3.0.1-SNAPSHOT")
+("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.0.1_spark_3.0.1-SNAPSHOT")
 ```
 
 ```scala
@@ -215,7 +234,7 @@ Maven (for a full example, see [examples/rovio-ingest-maven-example](examples/ro
         <dependency>
             <groupId>com.rovio.ingest</groupId>
             <artifactId>rovio-ingest</artifactId>
-            <version>1.0.0_spark_3.0.1-SNAPSHOT</version>
+            <version>1.0.1_spark_3.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -224,19 +243,6 @@ Maven (for a full example, see [examples/rovio-ingest-maven-example](examples/ro
             <scope>provided</scope>
         </dependency>
     </dependencies>
-
-    <repositories>
-        <repository>
-            <id>oss.sonatype.org-snapshot</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
 
 A `DruidDataset` wrapper class is provided to repartition the dataset for the `DruidSource` DataSource.
 

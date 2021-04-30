@@ -38,7 +38,10 @@
         <dependency>
             <groupId>com.rovio.ingest</groupId>
             <artifactId>rovio-ingest</artifactId>
-            <version>1.0.0_spark_3.0.1-SNAPSHOT</version>
+            <version>1.0.1_spark_3.0.1</version>
+            <!-- NOTE: This requires the sonatype snapshot repository. See <repositories>.
+            <version>1.0.1_spark_3.0.1-SNAPSHOT</version>
+            -->
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -54,6 +57,7 @@
         </dependency>
     </dependencies>
 
+    <!-- Only needed if using SNAPSHOT version -->
     <repositories>
         <repository>
             <id>oss.sonatype.org-snapshot</id>
