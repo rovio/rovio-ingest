@@ -96,6 +96,10 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
 
     public static void prepareDatabase() throws IOException, SQLException {
         connectionString =  MYSQL.getJdbcUrl();
+        if (!connectionString.contains("useSSL=")) {
+            String separator = connectionString.contains("?") ? "&" : "?";
+            connectionString = connectionString + separator + "useSSL=false";
+        }
         // Druid requires its MySQL database to be created with an UTF8 charset.
         runSql(String.format("ALTER DATABASE %s CHARACTER SET utf8mb4", DB_NAME));
         runSql(String.format("CREATE TABLE %1$s (\n"
