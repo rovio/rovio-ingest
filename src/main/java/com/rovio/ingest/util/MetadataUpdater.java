@@ -18,6 +18,7 @@ package com.rovio.ingest.util;
 import com.google.common.base.Preconditions;
 import com.rovio.ingest.WriterContext;
 import org.apache.druid.java.util.common.DateTimes;
+import org.apache.druid.java.util.common.RetryUtils;
 import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.druid.metadata.MetadataStorageTablesConfig;
 import org.apache.druid.metadata.SQLMetadataConnector;
@@ -30,6 +31,7 @@ import org.skife.jdbi.v2.Update;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.BatchUpdateException;
 import java.util.List;
 
 import static com.rovio.ingest.DataSegmentCommitMessage.MAPPER;
@@ -37,6 +39,7 @@ import static java.lang.String.format;
 
 public class MetadataUpdater {
     private static final Logger LOG = LoggerFactory.getLogger(MetadataUpdater.class);
+    private static final int DEFAULT_MAX_RETRIES = 5;
 
     private static final String INSERT_SEGMENT_SQL =
             "INSERT INTO %1$s (id, dataSource, created_date, start, \"end\", partitioned, version, used, payload) " +
@@ -101,7 +104,7 @@ public class MetadataUpdater {
             return;
         }
 
-        this.sqlConnector.getDBI().withHandle(handle -> {
+        RetryUtils.Task<int[]> task = () -> this.sqlConnector.getDBI().withHandle(handle -> {
             handle.getConnection().setAutoCommit(false);
             handle.begin();
             PreparedBatch preparedBatch = handle.prepareBatch(format(INSERT_SEGMENT_SQL, this.segmentsTable));
@@ -136,5 +139,25 @@ public class MetadataUpdater {
             handle.commit();
             return execute;
         });
+
+        try {
+            RetryUtils.retry(
+                    task,
+                    this::isLockTimeoutException,
+                    0,
+                    DEFAULT_MAX_RETRIES,
+                    null,
+                    String.format("Lock wait timeout exception while publishing segments for %s", dataSource));
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to publish segments with retry", e);
+        }
+      }
+
+    private boolean isLockTimeoutException(Throwable e) {
+        return e != null &&
+                ((e instanceof BatchUpdateException &&
+                        e.getMessage() != null && e.getMessage().contains("Lock wait timeout exceeded")) ||
+                        isLockTimeoutException(e.getCause())
+                );
     }
 }

@@ -85,7 +85,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
                         .options(options)
                         .save());
         assertThat(thrown.getCause().getMessage(), containsString(
-                "java.sql.BatchUpdateException: Duplicate entry"));
+                "Failed to publish segments with retry"));
     }
 
     @Test
