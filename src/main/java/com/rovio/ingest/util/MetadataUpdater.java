@@ -17,6 +17,7 @@ package com.rovio.ingest.util;
 
 import com.google.common.base.Preconditions;
 import com.rovio.ingest.WriterContext;
+import org.apache.druid.indexer.SQLMetadataStorageUpdaterJobHandler;
 import org.apache.druid.java.util.common.DateTimes;
 import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.druid.metadata.MetadataStorageTablesConfig;
@@ -38,10 +39,6 @@ import static java.lang.String.format;
 public class MetadataUpdater {
     private static final Logger LOG = LoggerFactory.getLogger(MetadataUpdater.class);
 
-    private static final String INSERT_SEGMENT_SQL =
-            "INSERT INTO %1$s (id, dataSource, created_date, start, \"end\", partitioned, version, used, payload) " +
-                    "VALUES (:id, :dataSource, :created_date, :start, :end, :partitioned, :version, :used, :payload)";
-
     private static final String MARK_ALL_OLDER_SEGMENTS_AS_UNUSED_SQL =
             "UPDATE %1$s SET used = false" +
                     " WHERE dataSource=:dataSource AND version != :version AND used = true";
@@ -51,6 +48,7 @@ public class MetadataUpdater {
     private final boolean initDataSource;
     private final SQLMetadataConnector sqlConnector;
     private final String segmentsTable;
+    private final SQLMetadataStorageUpdaterJobHandler metadataStorageUpdaterJobHandler;
 
     public MetadataUpdater(WriterContext param) {
         Preconditions.checkNotNull(param);
@@ -79,6 +77,7 @@ public class MetadataUpdater {
         this.sqlConnector = new MySQLConnector(() -> metadataStorageConnectorConfig,
                 () -> metadataStorageTablesConfig,
                 new MySQLConnectorConfig());
+        this.metadataStorageUpdaterJobHandler = new SQLMetadataStorageUpdaterJobHandler(sqlConnector);
 
         testDbConnection();
     }
@@ -91,9 +90,8 @@ public class MetadataUpdater {
     }
 
     /**
-     * Updates segments in Metadata database.
-     * Same logic as {@link org.apache.druid.indexer.SQLMetadataStorageUpdaterJobHandler#publishSegments} with
-     * additional handling for (re-)init.
+     * Updates segments in Metadata segment table using {@link org.apache.druid.indexer.SQLMetadataStorageUpdaterJobHandler#publishSegments},
+     * with additional handling for (re-)init.
      */
     public void publishSegments(List<DataSegment> dataSegments) {
         if (dataSegments.isEmpty()) {
@@ -101,29 +99,12 @@ public class MetadataUpdater {
             return;
         }
 
+        metadataStorageUpdaterJobHandler.publishSegments(segmentsTable, dataSegments, MAPPER);
+        LOG.info("All segments published");
+
         this.sqlConnector.getDBI().withHandle(handle -> {
             handle.getConnection().setAutoCommit(false);
             handle.begin();
-            PreparedBatch preparedBatch = handle.prepareBatch(format(INSERT_SEGMENT_SQL, this.segmentsTable));
-            for (DataSegment segment : dataSegments) {
-                preparedBatch
-                        .bind("id", segment.getIdentifier())
-                        .bind("dataSource", segment.getDataSource())
-                        .bind("created_date", DateTimes.nowUtc().toString())
-                        .bind("start", segment.getInterval().getStart().toString())
-                        .bind("end", segment.getInterval().getEnd().toString())
-                        .bind("partitioned", !(segment.getShardSpec() instanceof NoneShardSpec))
-                        .bind("version", segment.getVersion())
-                        .bind("used", true)
-                        .bind("payload", MAPPER.writeValueAsBytes(segment))
-                        .add();
-            }
-
-            int[] execute = preparedBatch.execute();
-            if (execute.length != dataSegments.size()) {
-                throw new IllegalStateException(format("Failed to update All segments, segment=%d, updated=%d",
-                        dataSegments.size(), execute.length));
-            }
 
             Update updateStatement;
             if (initDataSource) {
@@ -134,7 +115,7 @@ public class MetadataUpdater {
             }
 
             handle.commit();
-            return execute;
+            return null;
         });
     }
 }
