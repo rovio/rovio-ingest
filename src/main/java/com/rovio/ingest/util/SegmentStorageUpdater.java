@@ -24,29 +24,23 @@ import org.apache.druid.segment.loading.DataSegmentPusher;
 import org.apache.druid.segment.loading.LocalDataSegmentKiller;
 import org.apache.druid.segment.loading.LocalDataSegmentPusher;
 import org.apache.druid.segment.loading.LocalDataSegmentPusherConfig;
-import org.apache.druid.storage.s3.NoopServerSideEncryption;
-import org.apache.druid.storage.s3.S3DataSegmentKiller;
-import org.apache.druid.storage.s3.S3DataSegmentPusher;
-import org.apache.druid.storage.s3.S3DataSegmentPusherConfig;
-import org.apache.druid.storage.s3.ServerSideEncryptingAmazonS3;
+import org.apache.druid.storage.s3.*;
 
 import java.io.File;
-
-import static com.rovio.ingest.DataSegmentCommitMessage.MAPPER;
 
 public class SegmentStorageUpdater {
 
     public static DataSegmentPusher createPusher(WriterContext param) {
         Preconditions.checkNotNull(param);
         if (param.isLocalDeepStorage()) {
-            return new LocalDataSegmentPusher(getLocalConfig(param.getLocalDir()), MAPPER);
+            return new LocalDataSegmentPusher(getLocalConfig(param.getLocalDir()));
         } else {
             ServerSideEncryptingAmazonS3 serverSideEncryptingAmazonS3 = getAmazonS3();
             S3DataSegmentPusherConfig s3Config = new S3DataSegmentPusherConfig();
             s3Config.setBucket(param.getS3Bucket());
             s3Config.setBaseKey(param.getS3BaseKey());
             s3Config.setUseS3aSchema(true);
-            return new S3DataSegmentPusher(serverSideEncryptingAmazonS3, s3Config, MAPPER);
+            return new S3DataSegmentPusher(serverSideEncryptingAmazonS3, s3Config);
         }
     }
 
@@ -56,7 +50,11 @@ public class SegmentStorageUpdater {
             return new LocalDataSegmentKiller(getLocalConfig(param.getLocalDir()));
         } else {
             ServerSideEncryptingAmazonS3 serverSideEncryptingAmazonS3 = getAmazonS3();
-            return new S3DataSegmentKiller(serverSideEncryptingAmazonS3);
+            S3DataSegmentPusherConfig s3Config = new S3DataSegmentPusherConfig();
+            s3Config.setBucket(param.getS3Bucket());
+            s3Config.setBaseKey(param.getS3BaseKey());
+            s3Config.setUseS3aSchema(true);
+            return new S3DataSegmentKiller(serverSideEncryptingAmazonS3, s3Config, new S3InputDataConfig());
         }
     }
 

@@ -56,7 +56,11 @@ public class WriterContext implements Serializable {
     private final boolean initDataSource;
     private final String version;
     private final boolean rollup;
+    private final boolean useDefaultValueForNull;
+    private final boolean autoMapMetrics;
+    private final String dimensionsSpec;
     private final String metricsSpec;
+    private final String transformSpec;
 
     private WriterContext(CaseInsensitiveStringMap options, String version) {
         this.dataSource = getOrThrow(options, ConfKeys.DATA_SOURCE);
@@ -94,7 +98,11 @@ public class WriterContext implements Serializable {
 
         this.initDataSource = options.getBoolean(ConfKeys.DATASOURCE_INIT, false);
         this.rollup = options.getBoolean(ConfKeys.SEGMENT_ROLLUP, true);
+        this.useDefaultValueForNull = options.getBoolean(ConfKeys.USE_DEFAULT_VALUES_FOR_NULL, true);
+        this.autoMapMetrics = options.getBoolean(ConfKeys.AUTO_MAP_METRICS, true);
+        this.dimensionsSpec = options.getOrDefault(ConfKeys.DIMENSIONS_SPEC, null);
         this.metricsSpec = options.getOrDefault(ConfKeys.METRICS_SPEC, null);
+        this.transformSpec = options.getOrDefault(ConfKeys.TRANSFORM_SPEC, null);
 
         this.version = version;
     }
@@ -191,8 +199,24 @@ public class WriterContext implements Serializable {
         return rollup;
     }
 
+    public boolean isUseDefaultValueForNull() {
+        return useDefaultValueForNull;
+    }
+
+    public boolean isAutoMapMetrics() {
+        return autoMapMetrics;
+    }
+
+    public String getDimensionsSpec() {
+        return dimensionsSpec;
+    }
+
     public String getMetricsSpec() {
         return metricsSpec;
+    }
+
+    public String getTransformSpec() {
+        return transformSpec;
     }
 
   public static class ConfKeys {
@@ -200,7 +224,9 @@ public class WriterContext implements Serializable {
         // Segment config
         public static final String DATA_SOURCE = "druid.datasource";
         public static final String TIME_COLUMN = "druid.time_column";
+        public static final String DIMENSIONS_SPEC = "druid.dimensions_spec";
         public static final String METRICS_SPEC = "druid.metrics_spec";
+        public static final String TRANSFORM_SPEC = "druid.transform_spec";
         public static final String SEGMENT_GRANULARITY = "druid.segment_granularity";
         public static final String QUERY_GRANULARITY = "druid.query_granularity";
         public static final String BITMAP_FACTORY = "druid.bitmap_factory";
@@ -208,6 +234,8 @@ public class WriterContext implements Serializable {
         public static final String SEGMENT_MAX_ROWS = "druid.segment.max_rows";
         public static final String MAX_ROWS_IN_MEMORY = "druid.memory.max_rows";
         public static final String SEGMENT_ROLLUP = "druid.segment.rollup";
+        public static final String AUTO_MAP_METRICS = "druid.metrics.auto_map";
+        public static final String USE_DEFAULT_VALUES_FOR_NULL = "druid.use_default_values_for_null";
         // Metadata config
         public static final String METADATA_DB_URI = "druid.metastore.db.uri";
         public static final String METADATA_DB_USERNAME = "druid.metastore.db.username";

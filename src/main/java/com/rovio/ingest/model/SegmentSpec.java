@@ -20,13 +20,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.druid.data.input.impl.DimensionSchema;
-import org.apache.druid.data.input.impl.DimensionsSpec;
-import org.apache.druid.data.input.impl.InputRowParser;
-import org.apache.druid.data.input.impl.MapInputRowParser;
-import org.apache.druid.data.input.impl.StringDimensionSchema;
-import org.apache.druid.data.input.impl.TimeAndDimsParseSpec;
-import org.apache.druid.data.input.impl.TimestampSpec;
+import org.apache.druid.data.input.impl.*;
 import org.apache.druid.java.util.common.granularity.Granularity;
 import org.apache.druid.query.aggregation.AggregatorFactory;
 import org.apache.druid.query.aggregation.DoubleSumAggregatorFactory;
@@ -34,16 +28,19 @@ import org.apache.druid.query.aggregation.LongSumAggregatorFactory;
 import org.apache.druid.segment.indexing.DataSchema;
 import org.apache.druid.segment.indexing.granularity.GranularitySpec;
 import org.apache.druid.segment.indexing.granularity.UniformGranularitySpec;
+import org.apache.druid.segment.transform.TransformSpec;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import static com.rovio.ingest.DataSegmentCommitMessage.MAPPER;
+import static org.apache.spark.sql.types.DataTypes.*;
 
+@SuppressWarnings("Convert2Diamond")
 public class SegmentSpec implements Serializable {
     private static final long serialVersionUID = 1L;
     private static final String PARTITION_TIME_COLUMN_NAME = "__PARTITION_TIME__";
@@ -58,10 +55,14 @@ public class SegmentSpec implements Serializable {
     private final Field partitionTime;
     private final Field partitionNum;
     private final boolean rollup;
+    private final boolean autoMapMetrics;
+    private final String dimensionsSpec;
     private final String metricsSpec;
+    private final String transformSpec;
 
     private SegmentSpec(String dataSource, String timeColumn, String segmentGranularity, String queryGranularity,
-                        List<Field> fields, Field partitionTime, Field partitionNum, boolean rollup, String metricsSpec) {
+                        List<Field> fields, Field partitionTime, Field partitionNum, boolean rollup, boolean autoMapMetrics,
+                        String dimensionsSpec, String metricsSpec, String transformSpec) {
         this.dataSource = dataSource;
         this.timeColumn = timeColumn;
         this.segmentGranularity = segmentGranularity;
@@ -70,12 +71,20 @@ public class SegmentSpec implements Serializable {
         this.partitionTime = partitionTime;
         this.partitionNum = partitionNum;
         this.rollup = rollup;
+        this.autoMapMetrics = autoMapMetrics;
+        this.dimensionsSpec = dimensionsSpec;
         this.metricsSpec = metricsSpec;
+        this.transformSpec = transformSpec;
+    }
+
+    public static SegmentSpec from(String datasource, String timeColumn, List<String> excludedDimensions,
+            String segmentGranularity, String queryGranularity, StructType schema, boolean autoMapMetrics, boolean rollup, String metricsSpec) {
+        return from(datasource, timeColumn, excludedDimensions, segmentGranularity, queryGranularity, schema, rollup, true, null, metricsSpec, null);
     }
 
     public static SegmentSpec from(String datasource, String timeColumn, List<String> excludedDimensions,
                                    String segmentGranularity, String queryGranularity, StructType schema, boolean rollup,
-                                   String metricsSpec) {
+                                   boolean autoMapMetrics, String dimensionsSpec, String metricsSpec, String transformSpec) {
         Preconditions.checkNotNull(datasource);
         Preconditions.checkNotNull(timeColumn);
         Preconditions.checkNotNull(excludedDimensions);
@@ -108,8 +117,8 @@ public class SegmentSpec implements Serializable {
         Preconditions.checkArgument(fields.stream().anyMatch(f -> f.getAggregatorType() == AggregatorType.STRING),
                 "Schema has no dimensions");
 
-        Preconditions.checkArgument(fields.stream().anyMatch(f -> f.getAggregatorType() == AggregatorType.LONG || f.getAggregatorType() == AggregatorType.DOUBLE),
-                "Schema has no metrics");
+        Preconditions.checkArgument(!rollup || fields.stream().anyMatch(f -> f.getAggregatorType() == AggregatorType.LONG || f.getAggregatorType() == AggregatorType.DOUBLE),
+                "Schema has rollup enable but has no metrics");
 
         if (partitionTime != null) {
             Preconditions.checkArgument(partitionTime.getAggregatorType() == AggregatorType.TIMESTAMP,
@@ -121,7 +130,12 @@ public class SegmentSpec implements Serializable {
                     String.format("Field with name \"%s\" should be long/int type, current type is %s", PARTITION_NUM_COLUMN_NAME, partitionNum.getAggregatorType().name()));
         }
 
-        return new SegmentSpec(datasource, timeColumn, segmentGranularity, queryGranularity, fields, partitionTime, partitionNum, rollup, metricsSpec);
+        if (StringUtils.isNotBlank(metricsSpec) && autoMapMetrics) {
+            // ignore automap if we've been provided a metrics spec
+            autoMapMetrics = false;
+        }
+
+        return new SegmentSpec(datasource, timeColumn, segmentGranularity, queryGranularity, fields, partitionTime, partitionNum, rollup, autoMapMetrics, dimensionsSpec, metricsSpec, transformSpec);
     }
 
     public String getTimeColumn() {
@@ -143,11 +157,11 @@ public class SegmentSpec implements Serializable {
     public DataSchema getDataSchema() {
         return new DataSchema(
                 dataSource,
-                getInputRowParser(),
+                new TimestampSpec(TIME_DIMENSION, "auto", null),
+                getDimensionsSpec(),
                 getAggregators(),
                 getGranularitySpec(),
-                null,
-                MAPPER
+                getTransformSpec()
         );
     }
 
@@ -162,6 +176,58 @@ public class SegmentSpec implements Serializable {
                 '}';
     }
 
+    private DimensionsSpec getDimensionsSpec() {
+        if (StringUtils.isNotBlank(dimensionsSpec)) {
+            try {
+                return MAPPER.readValue(dimensionsSpec, new TypeReference<DimensionsSpec>() {});
+            } catch (JsonProcessingException e) {
+                throw new IllegalArgumentException(String.format("Failed to deserialize from dimensionsSpec=%s", dimensionsSpec), e);
+            }
+        }
+        else {
+            return new DimensionsSpec(getDimensionSchemas());
+        }
+    }
+
+    private ImmutableList<DimensionSchema> getDimensionSchemas() {
+        ImmutableList.Builder<DimensionSchema> builder = ImmutableList.builder();
+        for (Field field : fields) {
+            String fieldName = field.getName();
+            if (field.getAggregatorType() == AggregatorType.STRING) {
+                builder.add(StringDimensionSchema.create(fieldName));
+            }
+            else if (!getTimeColumn().equals(fieldName) &&
+                    Arrays.stream(getAggregators()).noneMatch(aggregatorFactory -> aggregatorFactory.requiredFields().contains(fieldName)))
+            {
+                if (field.getSqlType() == LongType) {
+                    builder.add(new LongDimensionSchema(fieldName));
+                }
+                else if (field.getSqlType() == DoubleType) {
+                    builder.add(new DoubleDimensionSchema(fieldName));
+                }
+                else if (field.getSqlType() == DateType) {
+                    builder.add(new LongDimensionSchema(fieldName));
+                }
+                else if (field.getSqlType() == TimestampType) {
+                    builder.add(new LongDimensionSchema(fieldName));
+                }
+            }
+        }
+        return builder.build();
+    }
+
+    private TransformSpec getTransformSpec() {
+        if (StringUtils.isNotBlank(transformSpec)) {
+            try {
+                return MAPPER.readValue(transformSpec, new TypeReference<TransformSpec>() {});
+            } catch (JsonProcessingException e) {
+                throw new IllegalArgumentException(String.format("Failed to deserialize from transformSpec=%s", transformSpec), e);
+            }
+        }
+
+        return TransformSpec.NONE;
+    }
+
     private GranularitySpec getGranularitySpec() {
         return new UniformGranularitySpec(
                 Granularity.fromString(segmentGranularity),
@@ -173,16 +239,14 @@ public class SegmentSpec implements Serializable {
     private AggregatorFactory[] getAggregators() {
         ImmutableList.Builder<AggregatorFactory> builder = ImmutableList.builder();
         if (StringUtils.isNotBlank(metricsSpec)) {
-            List<AggregatorFactory> aggregatorFactories = null;
+            List<AggregatorFactory> aggregatorFactories;
             try {
-                aggregatorFactories = MAPPER.readValue(metricsSpec, new TypeReference<List<AggregatorFactory>>() {
-                });
+                aggregatorFactories = MAPPER.readValue(metricsSpec, new TypeReference<List<AggregatorFactory>>() {});
             } catch (JsonProcessingException e) {
-                throw new IllegalArgumentException(String.format("Failed to deserialise from metricsSpec=%s", metricsSpec), e);
+                throw new IllegalArgumentException(String.format("Failed to deserialize from metricsSpec=%s", metricsSpec), e);
             }
             builder.addAll(aggregatorFactories);
-        } else {
-            // Legacy code will be removed in future.
+        } else if (autoMapMetrics) {
             for (Field field : fields) {
                 String fieldName = field.getName();
                 AggregatorType dataAggregatorType = field.getAggregatorType();
@@ -195,21 +259,5 @@ public class SegmentSpec implements Serializable {
         }
 
         return builder.build().toArray(new AggregatorFactory[0]);
-    }
-
-    private Map<String, Object> getInputRowParser() {
-        ImmutableList.Builder<DimensionSchema> builder = ImmutableList.builder();
-        for (Field field : fields) {
-            String fieldName = field.getName();
-            if (field.getAggregatorType() == AggregatorType.STRING) {
-                builder.add(StringDimensionSchema.create(fieldName));
-            }
-        }
-
-        InputRowParser inputRowParser = new MapInputRowParser(new TimeAndDimsParseSpec(
-                new TimestampSpec(TIME_DIMENSION, "auto", null),
-                new DimensionsSpec(builder.build(), null, null)));
-        return MAPPER.convertValue(inputRowParser, new TypeReference<Map<String, Object>>() {
-        });
     }
 }

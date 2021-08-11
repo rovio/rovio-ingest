@@ -22,8 +22,10 @@ import com.google.common.collect.Table;
 import com.holdenkarau.spark.testing.SharedJavaSparkContext;
 import com.rovio.ingest.WriterContext.ConfKeys;
 import com.rovio.ingest.util.NormalizeTimeColumnUDF;
+import org.apache.druid.common.config.NullHandling;
 import org.apache.druid.data.input.InputRow;
-import org.apache.druid.java.util.common.CompressionUtils;
+import org.apache.druid.java.util.emitter.EmittingLogger;
+import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.metadata.MetadataStorageTablesConfig;
 import org.apache.druid.segment.IndexIO;
 import org.apache.druid.segment.QueryableIndexStorageAdapter;
@@ -31,6 +33,7 @@ import org.apache.druid.segment.realtime.firehose.IngestSegmentFirehose;
 import org.apache.druid.segment.realtime.firehose.WindowedStorageAdapter;
 import org.apache.druid.segment.transform.TransformSpec;
 import org.apache.druid.timeline.DataSegment;
+import org.apache.druid.utils.CompressionUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -42,10 +45,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mockito;
 import org.skife.jdbi.v2.DBI;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,7 +89,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
     public File testFolder;
 
     @Container
-    public static MySQLContainer MYSQL = new MySQLContainer()
+    public static MySQLContainer MYSQL = new MySQLContainer(DockerImageName.parse("mysql").withTag("5.7.34"))
             .withUsername(dbUser)
             .withPassword(dbPass)
             .withDatabaseName(DB_NAME);
@@ -139,6 +144,9 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
         // note: these are ignored when DEEP_STORAGE_TYPE = local
         options.put(ConfKeys.DEEP_STORAGE_S3_BUCKET, "my-bucket");
         options.put(ConfKeys.DEEP_STORAGE_S3_BASE_KEY, "druid/prod/segments");
+
+        NullHandling.initializeForTests();
+        EmittingLogger.registerEmitter(Mockito.mock(ServiceEmitter.class));
     }
 
     @BeforeEach
@@ -179,7 +187,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
 
     static void verifySegmentPath(Path root, Interval interval, String version, int numShards, boolean isMonth) throws IOException {
         for (DateTime current = interval.getStart(); current.isBefore(interval.getEnd()); current = isMonth ? current.plusMonths(1) : current.plusDays(1)) {
-            String relativePath = current + DataSegment.delimiter + (isMonth ? current.plusMonths(1) : current.plusDays(1));
+            String relativePath = current + "_" + (isMonth ? current.plusMonths(1) : current.plusDays(1));
             assertEquals(numShards,
                     Files.list(Paths.get(root.toString(), relativePath, version))
                             .filter(p -> Files.isDirectory(p.toAbsolutePath(), NOFOLLOW_LINKS))
@@ -215,7 +223,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
                                                                                                        boolean isMonth) throws IOException {
         Table<Integer, ImmutableMap<String, Object>, ImmutableMap<String, Object>> rows = HashBasedTable.create();
         for (DateTime current = interval.getStart(); current.isBefore(interval.getEnd()); current = isMonth ? current.plusMonths(1) : current.plusDays(1)) {
-            String relativePath = current + DataSegment.delimiter + (isMonth ? current.plusMonths(1) : current.plusDays(1));
+            String relativePath = current + "_" + (isMonth ? current.plusMonths(1) : current.plusDays(1));
             for (int i = 0; i < numShards; i++) {
                 Path zipPath = Paths.get(root.toString(), relativePath, version, String.valueOf(i), "index.zip");
                 ImmutableMap<ImmutableMap<String, Object>, ImmutableMap<String, Object>> data = readSegmentZip(interval, zipPath);

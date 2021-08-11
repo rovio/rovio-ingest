@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2021 Rovio Entertainment Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -75,7 +75,7 @@ class DruidDatasetExtensionsSpec extends FlatSpec with Matchers with BeforeAndAf
     ).toDS
       .withColumn("date", 'date.cast(DataTypes.TimestampType))
       // note how we can call .repartitionByDruidSegmentSize directly on Dataset[Row]
-      // the nice thing is this allows continuous method chaining on Dataset without braking the chain
+      // the nice thing is this allows continuous method chaining on Dataset without breaking the chain
       .repartitionByDruidSegmentSize("date", "DAY", 2)
       // group & count
       // because we can't know which exact rows end up in each partition within the same date
@@ -107,7 +107,7 @@ class DruidDatasetExtensionsSpec extends FlatSpec with Matchers with BeforeAndAf
     ).toDS
       .withColumn("date", 'date.cast(DataTypes.TimestampType))
       // note how we can call .repartitionByDruidSegmentSize directly on Dataset[Row]
-      // the nice thing is this allows continuous method chaining on Dataset without braking the chain
+      // the nice thing is this allows continuous method chaining on Dataset without breaking the chain
       .repartitionByDruidSegmentSize("date", "WEEK", 4)
       // group & count
       // because we can't know which exact rows end up in each partition within the same date
@@ -137,7 +137,7 @@ class DruidDatasetExtensionsSpec extends FlatSpec with Matchers with BeforeAndAf
     ).toDS
       .withColumn("date", 'date.cast(DataTypes.TimestampType))
       // note how we can call .repartitionByDruidSegmentSize directly on Dataset[Row]
-      // the nice thing is this allows continuous method chaining on Dataset without braking the chain
+      // the nice thing is this allows continuous method chaining on Dataset without breaking the chain
       .repartitionByDruidSegmentSize("date", "HOUR", 2)
       // group & count
       // because we can't know which exact rows end up in each partition within the same date
@@ -270,7 +270,7 @@ class DruidDatasetExtensionsSpec extends FlatSpec with Matchers with BeforeAndAf
       .withColumn("date", 'date.cast(DataTypes.TimestampType))
 
     // note how we can call .repartitionByDruidSegmentSize directly on Dataset[Row]
-    // the nice thing is this allows continuous method chaining on Dataset without braking the chain
+    // the nice thing is this allows continuous method chaining on Dataset without breaking the chain
     ds.repartitionByDruidSegmentSize("date", rowsPerSegment=2)
       .write
       .mode(SaveMode.Overwrite)

@@ -25,6 +25,9 @@ import org.apache.druid.metadata.MetadataStorageTablesConfig;
 import org.apache.druid.metadata.SQLMetadataConnector;
 import org.apache.druid.metadata.storage.mysql.MySQLConnector;
 import org.apache.druid.metadata.storage.mysql.MySQLConnectorConfig;
+import org.apache.druid.metadata.storage.postgresql.PostgreSQLConnector;
+import org.apache.druid.metadata.storage.postgresql.PostgreSQLConnectorConfig;
+import org.apache.druid.metadata.storage.postgresql.PostgreSQLTablesConfig;
 import org.apache.druid.timeline.DataSegment;
 import org.skife.jdbi.v2.PreparedBatch;
 import org.slf4j.Logger;
@@ -75,9 +78,13 @@ public class MetadataUpdater {
 
         MetadataStorageTablesConfig metadataStorageTablesConfig = MetadataStorageTablesConfig.fromBase(param.getMetadataDbTableBase());
         this.segmentsTable = metadataStorageTablesConfig.getSegmentsTable();
-        this.sqlConnector = new MySQLConnector(() -> metadataStorageConnectorConfig,
+        this.sqlConnector = (param.getMetadataDbUri().toLowerCase().startsWith("jdbc:mysql"))
+            ? new MySQLConnector(() -> metadataStorageConnectorConfig,
                 () -> metadataStorageTablesConfig,
-                new MySQLConnectorConfig());
+                new MySQLConnectorConfig())
+            : new PostgreSQLConnector(() -> metadataStorageConnectorConfig,
+                () -> metadataStorageTablesConfig,
+                new PostgreSQLConnectorConfig(), new PostgreSQLTablesConfig());
         this.metadataStorageUpdaterJobHandler = new SQLMetadataStorageUpdaterJobHandler(sqlConnector);
 
         testDbConnection();
@@ -118,7 +125,7 @@ public class MetadataUpdater {
                         .bind("ids",
                                 dataSegments
                                         .stream()
-                                        .map(d -> StringUtils.wrap(d.getIdentifier(), "'"))
+                                        .map(d -> StringUtils.wrap(d.getId().toString(), "'"))
                                         .collect(Collectors.joining(",")))
                         .list()
                         .stream()
@@ -133,7 +140,7 @@ public class MetadataUpdater {
                                 .build());
                     }
 
-                    LOG.info(String.format("Marking %s old segments as ununsed", oldSegmentIds.size()));
+                    LOG.info(String.format("Marking %s old segments as unused", oldSegmentIds.size()));
                     batch.execute();
                 }
 

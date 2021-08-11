@@ -35,8 +35,8 @@ public class Field implements Serializable {
         this.ordinal = ordinal;
     }
 
-    static Field from(StructField field, int oridinal) {
-        return new Field(field.name(), field.dataType(), oridinal);
+    static Field from(StructField field, int ordinal) {
+        return new Field(field.name(), field.dataType(), ordinal);
     }
 
     public String getName() {

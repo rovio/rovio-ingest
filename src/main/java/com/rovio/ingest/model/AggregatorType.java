@@ -29,6 +29,10 @@ public enum AggregatorType {
             return LONG;
         }
 
+        if (isDateType(dataType)) {
+            return TIMESTAMP;
+        }
+
         if (isDateTimeType(dataType)) {
             return TIMESTAMP;
         }
@@ -42,6 +46,10 @@ public enum AggregatorType {
         }
 
         throw new IllegalArgumentException("Unsupported Type " + dataType);
+    }
+
+    private static boolean isDateType(DataType dataType) {
+        return dataType == DataTypes.DateType;
     }
 
     private static boolean isDateTimeType(DataType dataType) {

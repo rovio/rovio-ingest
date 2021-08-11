@@ -45,7 +45,7 @@ public class DataSegmentCommitMessage implements WriterCommitMessage {
                         // However, ExprMacro are not actually required as the DataSource is write-only.
                         .addValue(ExprMacroTable.class, ExprMacroTable.nil())
                         // PruneLoadSpecHolder are injected in DataSegment.
-                        .addValue(DataSegment.PruneLoadSpecHolder.class, DataSegment.PruneLoadSpecHolder.DEFAULT);
+                        .addValue(DataSegment.PruneSpecsHolder.class, DataSegment.PruneSpecsHolder.DEFAULT);
 
         MAPPER.setInjectableValues(injectableValues);
         // Register LinearShardSpec as a sub type to be used by the mapper for deserializing DataSegment from json.
