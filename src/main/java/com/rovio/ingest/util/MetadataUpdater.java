@@ -28,13 +28,12 @@ import org.apache.druid.metadata.storage.mysql.MySQLConnector;
 import org.apache.druid.metadata.storage.mysql.MySQLConnectorConfig;
 import org.apache.druid.metadata.storage.postgresql.PostgreSQLConnector;
 import org.apache.druid.metadata.storage.postgresql.PostgreSQLConnectorConfig;
+import org.apache.druid.metadata.storage.postgresql.PostgreSQLTablesConfig;
 import org.apache.druid.timeline.DataSegment;
 import org.skife.jdbi.v2.PreparedBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -99,7 +98,8 @@ public class MetadataUpdater {
             case Postgres:
                 return new PostgreSQLConnector(() -> metadataStorageConnectorConfig,
                         () -> metadataStorageTablesConfig,
-                        new PostgreSQLConnectorConfig());
+                        new PostgreSQLConnectorConfig(),
+                        new PostgreSQLTablesConfig());
             default:
                 throw new IllegalArgumentException("Failed to instantiate the SQL connector");
         }
@@ -140,7 +140,7 @@ public class MetadataUpdater {
                         .bind("ids",
                                 dataSegments
                                         .stream()
-                                        .map(d -> StringUtils.wrap(d.getIdentifier(), "'"))
+                                        .map(d -> StringUtils.wrap(d.getId().toString(), "'"))
                                         .collect(Collectors.joining(",")))
                         .list()
                         .stream()

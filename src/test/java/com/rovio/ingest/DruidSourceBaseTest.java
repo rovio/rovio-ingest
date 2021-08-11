@@ -137,6 +137,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
         options.put(ConfKeys.DATA_SOURCE, DATA_SOURCE);
         options.put(ConfKeys.TIME_COLUMN, "date");
         options.put(ConfKeys.DEEP_STORAGE_LOCAL_DIRECTORY, testFolder.toString());
+        options.put(ConfKeys.METADATA_DB_TYPE, dbType);
         options.put(ConfKeys.METADATA_DB_URI, connectionString);
         options.put(ConfKeys.METADATA_DB_USERNAME, dbUser);
         options.put(ConfKeys.METADATA_DB_PASSWORD, dbPass);

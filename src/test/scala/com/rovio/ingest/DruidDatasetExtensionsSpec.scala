@@ -17,6 +17,7 @@ package com.rovio.ingest
 
 import org.scalatest._
 import com.rovio.ingest.WriterContext.ConfKeys
+import com.rovio.ingest.model.DbType
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Dataset, SaveMode, SparkSession}
 import org.junit.runner.RunWith
@@ -247,6 +248,7 @@ class DruidDatasetExtensionsSpec extends FlatSpec with Matchers with BeforeAndAf
     // create Data source options
     val options = Map[String, String](
       ConfKeys.DEEP_STORAGE_LOCAL_DIRECTORY -> "/tmp/local_segments",
+      ConfKeys.METADATA_DB_TYPE -> DbType.Mysql.name(),
       ConfKeys.METADATA_DB_URI -> DruidSourceBaseTest.connectionString,
       ConfKeys.METADATA_DB_USERNAME -> DruidSourceBaseTest.dbUser,
       ConfKeys.METADATA_DB_PASSWORD -> DruidSourceBaseTest.dbPass,
