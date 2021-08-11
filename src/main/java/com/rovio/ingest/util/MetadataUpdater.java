@@ -18,6 +18,7 @@ package com.rovio.ingest.util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.rovio.ingest.WriterContext;
+import com.rovio.ingest.model.DbType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.druid.indexer.SQLMetadataStorageUpdaterJobHandler;
 import org.apache.druid.metadata.MetadataStorageConnectorConfig;
@@ -27,12 +28,13 @@ import org.apache.druid.metadata.storage.mysql.MySQLConnector;
 import org.apache.druid.metadata.storage.mysql.MySQLConnectorConfig;
 import org.apache.druid.metadata.storage.postgresql.PostgreSQLConnector;
 import org.apache.druid.metadata.storage.postgresql.PostgreSQLConnectorConfig;
-import org.apache.druid.metadata.storage.postgresql.PostgreSQLTablesConfig;
 import org.apache.druid.timeline.DataSegment;
 import org.skife.jdbi.v2.PreparedBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -78,16 +80,29 @@ public class MetadataUpdater {
 
         MetadataStorageTablesConfig metadataStorageTablesConfig = MetadataStorageTablesConfig.fromBase(param.getMetadataDbTableBase());
         this.segmentsTable = metadataStorageTablesConfig.getSegmentsTable();
-        this.sqlConnector = (param.getMetadataDbUri().toLowerCase().startsWith("jdbc:mysql"))
-            ? new MySQLConnector(() -> metadataStorageConnectorConfig,
-                () -> metadataStorageTablesConfig,
-                new MySQLConnectorConfig())
-            : new PostgreSQLConnector(() -> metadataStorageConnectorConfig,
-                () -> metadataStorageTablesConfig,
-                new PostgreSQLConnectorConfig(), new PostgreSQLTablesConfig());
+
+        final DbType dbType = DbType.from(param.getMetadataDbType());
+        this.sqlConnector = this.makeSqlConnector(dbType, metadataStorageConnectorConfig, metadataStorageTablesConfig);
         this.metadataStorageUpdaterJobHandler = new SQLMetadataStorageUpdaterJobHandler(sqlConnector);
 
         testDbConnection();
+    }
+
+    private SQLMetadataConnector makeSqlConnector(DbType dbType,
+                                                  MetadataStorageConnectorConfig metadataStorageConnectorConfig,
+                                                  MetadataStorageTablesConfig metadataStorageTablesConfig) {
+        switch (dbType) {
+            case Mysql:
+                return new MySQLConnector(() -> metadataStorageConnectorConfig,
+                        () -> metadataStorageTablesConfig,
+                        new MySQLConnectorConfig());
+            case Postgres:
+                return new PostgreSQLConnector(() -> metadataStorageConnectorConfig,
+                        () -> metadataStorageTablesConfig,
+                        new PostgreSQLConnectorConfig());
+            default:
+                throw new IllegalArgumentException("Failed to instantiate the SQL connector");
+        }
     }
 
     private void testDbConnection() {
@@ -125,7 +140,7 @@ public class MetadataUpdater {
                         .bind("ids",
                                 dataSegments
                                         .stream()
-                                        .map(d -> StringUtils.wrap(d.getId().toString(), "'"))
+                                        .map(d -> StringUtils.wrap(d.getIdentifier(), "'"))
                                         .collect(Collectors.joining(",")))
                         .list()
                         .stream()
@@ -140,7 +155,7 @@ public class MetadataUpdater {
                                 .build());
                     }
 
-                    LOG.info(String.format("Marking %s old segments as unused", oldSegmentIds.size()));
+                    LOG.info(String.format("Marking %s old segments as ununsed", oldSegmentIds.size()));
                     batch.execute();
                 }
 

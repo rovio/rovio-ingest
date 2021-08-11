@@ -153,6 +153,7 @@ df.repartition_by_druid_segment_size(partition_col) \
     .format(DRUID_SOURCE) \
     .option(ConfKeys.DATA_SOURCE, "target-datasource-name-in-druid") \
     .option(ConfKeys.TIME_COLUMN, "date") \
+    .option(ConfKeys.METADATA_DB_TYPE, "mysql") \
     .option(ConfKeys.METADATA_DB_URI, "jdbc:mysql://localhost:3306/druid") \
     .option(ConfKeys.METADATA_DB_USERNAME, "username") \
     .option(ConfKeys.METADATA_DB_PASSWORD, "password") \
@@ -213,6 +214,7 @@ import com.rovio.ingest.WriterContext.ConfKeys
 val ds: Dataset[Row] = ???
 
 val options = Map[String, String](
+  ConfKeys.METADATA_DB_type -> "mysql",
   ConfKeys.METADATA_DB_URI -> "jdbc:mysql://localhost:3306/druid",
   ConfKeys.METADATA_DB_USERNAME -> "username",
   ConfKeys.METADATA_DB_PASSWORD -> "password",
@@ -263,6 +265,7 @@ Map<String, String> options = new HashMap<>();
 
 options.put(ConfKeys.DATA_SOURCE, "target-datasource-name-in-druid");
 options.put(ConfKeys.TIME_COLUMN, "date");
+options.put(ConfKeys.METADATA_DB_TYPE, "mysql");
 options.put(ConfKeys.METADATA_DB_URI, "jdbc:mysql://localhost:3306/druid");
 options.put(ConfKeys.METADATA_DB_USERNAME, "username");
 options.put(ConfKeys.METADATA_DB_PASSWORD, "password");
@@ -289,7 +292,8 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 | Property | Description |
 | --- |--- |
 | `druid.datasource` | Name of the target datasource in Druid |
-| `druid.time_column` | Name of the column in the Spark DataFrame to be translated as Druid `__time` interval. Must be of `DateType` or `TimestampType`. |
+| `druid.time_column` | Name of the column in the Spark DataFrame to be translated as Druid `__time` interval. Must be of `TimestampType`. |
+| `druid.metastore.db.type` | Druid Metadata Storage database type (either "mysql" or "postgres") |
 | `druid.metastore.db.uri` | Druid Metadata Storage database URI |
 | `druid.metastore.db.username` | Druid Metadata Storage database username |
 | `druid.metastore.db.password` | Druid Metadata Storage database password |

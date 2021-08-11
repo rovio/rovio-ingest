@@ -34,6 +34,7 @@ class ConfKeys:
     SEGMENT_MAX_ROWS = "druid.segment.max_rows"
     SEGMENT_ROLLUP = "druid.segment.rollup"
     # Metadata config
+    METADATA_DB_TYPE = "druid.metastore.db.type"
     METADATA_DB_URI = "druid.metastore.db.uri"
     METADATA_DB_USERNAME = "druid.metastore.db.username"
     METADATA_DB_PASSWORD = "druid.metastore.db.password"

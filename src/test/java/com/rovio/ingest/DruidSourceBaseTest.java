@@ -78,6 +78,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
     protected static final String DB_NAME = "temp";
     protected static final long VERSION_TIME_MILLIS = 1569961771384L;
 
+    public static String dbType = "mysql";
     public static String dbUser = "user";
     public static String dbPass = "pass";
     public static String connectionString;
