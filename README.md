@@ -58,7 +58,7 @@ To summarize, these are the features that `rovio-ingest` addresses, that are lac
 
 The Dataset extension performs the following validations:
 * Type of `time_column` is `Date` or `Timestamp`
-* The Dataset has one or more metric columns
+* The Dataset has one or more metric columns if rollup is enabled
 * The Dataset has one or more dimension columns
 * The Dataset has no columns with unknown types, unless `excludeColumnsWithUnknownTypes` is set to true
 
@@ -214,7 +214,7 @@ import com.rovio.ingest.WriterContext.ConfKeys
 val ds: Dataset[Row] = ???
 
 val options = Map[String, String](
-  ConfKeys.METADATA_DB_type -> "mysql",
+  ConfKeys.METADATA_DB_TYPE -> "mysql",
   ConfKeys.METADATA_DB_URI -> "jdbc:mysql://localhost:3306/druid",
   ConfKeys.METADATA_DB_USERNAME -> "username",
   ConfKeys.METADATA_DB_PASSWORD -> "password",
@@ -244,7 +244,7 @@ Maven (for a full example, see [examples/rovio-ingest-maven-example](examples/ro
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
-            <version>2.11.1</version>
+            <version>2.11.2</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
