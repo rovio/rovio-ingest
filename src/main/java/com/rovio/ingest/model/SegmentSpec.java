@@ -34,11 +34,9 @@ import org.apache.spark.sql.types.StructType;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static com.rovio.ingest.DataSegmentCommitMessage.MAPPER;
-import static org.apache.spark.sql.types.DataTypes.*;
 
 @SuppressWarnings("Convert2Diamond")
 public class SegmentSpec implements Serializable {
@@ -79,7 +77,7 @@ public class SegmentSpec implements Serializable {
 
     public static SegmentSpec from(String datasource, String timeColumn, List<String> excludedDimensions,
             String segmentGranularity, String queryGranularity, StructType schema, boolean autoMapMetrics, boolean rollup, String metricsSpec) {
-        return from(datasource, timeColumn, excludedDimensions, segmentGranularity, queryGranularity, schema, rollup, true, null, metricsSpec, null);
+        return from(datasource, timeColumn, excludedDimensions, segmentGranularity, queryGranularity, schema, rollup, autoMapMetrics, null, metricsSpec, null);
     }
 
     public static SegmentSpec from(String datasource, String timeColumn, List<String> excludedDimensions,
@@ -107,27 +105,27 @@ public class SegmentSpec implements Serializable {
         }
 
         Preconditions.checkArgument(
-                fields.stream().anyMatch(f -> f.getName().equals(timeColumn) && f.getAggregatorType() == AggregatorType.TIMESTAMP),
+                fields.stream().anyMatch(f -> f.getName().equals(timeColumn) && f.getFieldType() == FieldType.TIMESTAMP),
                 String.format("Schema does not have field with name \"%s\" of DateTime type", timeColumn));
 
         Preconditions.checkArgument(
-                fields.stream().noneMatch(f -> f.getAggregatorType() == AggregatorType.TIMESTAMP && !f.getName().equals(timeColumn) && !f.getName().equals(PARTITION_TIME_COLUMN_NAME)),
+                fields.stream().noneMatch(f -> f.getFieldType() == FieldType.TIMESTAMP && !f.getName().equals(timeColumn) && !f.getName().equals(PARTITION_TIME_COLUMN_NAME)),
                 String.format("Schema has another timestamp field other than \"%s\"", timeColumn));
 
-        Preconditions.checkArgument(fields.stream().anyMatch(f -> f.getAggregatorType() == AggregatorType.STRING),
+        Preconditions.checkArgument(fields.stream().anyMatch(f -> f.getFieldType() == FieldType.STRING),
                 "Schema has no dimensions");
 
-        Preconditions.checkArgument(!rollup || fields.stream().anyMatch(f -> f.getAggregatorType() == AggregatorType.LONG || f.getAggregatorType() == AggregatorType.DOUBLE),
+        Preconditions.checkArgument(!rollup || fields.stream().anyMatch(f -> f.getFieldType() == FieldType.LONG || f.getFieldType() == FieldType.DOUBLE),
                 "Schema has rollup enable but has no metrics");
 
         if (partitionTime != null) {
-            Preconditions.checkArgument(partitionTime.getAggregatorType() == AggregatorType.TIMESTAMP,
-                    String.format("Field with name \"%s\" should be DateTime type, current type is %s", PARTITION_TIME_COLUMN_NAME, partitionTime.getAggregatorType().name()));
+            Preconditions.checkArgument(partitionTime.getFieldType() == FieldType.TIMESTAMP,
+                    String.format("Field with name \"%s\" should be DateTime type, current type is %s", PARTITION_TIME_COLUMN_NAME, partitionTime.getFieldType().name()));
         }
 
         if (partitionNum != null) {
-            Preconditions.checkArgument(partitionNum.getAggregatorType() == AggregatorType.LONG,
-                    String.format("Field with name \"%s\" should be long/int type, current type is %s", PARTITION_NUM_COLUMN_NAME, partitionNum.getAggregatorType().name()));
+            Preconditions.checkArgument(partitionNum.getFieldType() == FieldType.LONG,
+                    String.format("Field with name \"%s\" should be long/int type, current type is %s", PARTITION_NUM_COLUMN_NAME, partitionNum.getFieldType().name()));
         }
 
         if (StringUtils.isNotBlank(metricsSpec) && autoMapMetrics) {
@@ -191,24 +189,26 @@ public class SegmentSpec implements Serializable {
 
     private ImmutableList<DimensionSchema> getDimensionSchemas() {
         ImmutableList.Builder<DimensionSchema> builder = ImmutableList.builder();
+        AggregatorFactory[] aggregators = getAggregators();
+        List<String> aggregatorFields = new ArrayList<>();
+
+        for (AggregatorFactory aggregator : aggregators) {
+            aggregatorFields.addAll(aggregator.requiredFields());
+        }
+
         for (Field field : fields) {
             String fieldName = field.getName();
-            if (field.getAggregatorType() == AggregatorType.STRING) {
+            if (field.getFieldType() == FieldType.STRING) {
                 builder.add(StringDimensionSchema.create(fieldName));
             }
-            else if (!getTimeColumn().equals(fieldName) &&
-                    Arrays.stream(getAggregators()).noneMatch(aggregatorFactory -> aggregatorFactory.requiredFields().contains(fieldName)))
-            {
-                if (field.getSqlType() == LongType) {
+            else if (!getTimeColumn().equals(fieldName) && !aggregatorFields.contains(fieldName)) {
+                if (field.getFieldType() == FieldType.LONG) {
                     builder.add(new LongDimensionSchema(fieldName));
                 }
-                else if (field.getSqlType() == DoubleType) {
+                else if (field.getFieldType() == FieldType.DOUBLE) {
                     builder.add(new DoubleDimensionSchema(fieldName));
                 }
-                else if (field.getSqlType() == DateType) {
-                    builder.add(new LongDimensionSchema(fieldName));
-                }
-                else if (field.getSqlType() == TimestampType) {
+                else if (field.getFieldType() == FieldType.TIMESTAMP) {
                     builder.add(new LongDimensionSchema(fieldName));
                 }
             }
@@ -239,20 +239,18 @@ public class SegmentSpec implements Serializable {
     private AggregatorFactory[] getAggregators() {
         ImmutableList.Builder<AggregatorFactory> builder = ImmutableList.builder();
         if (StringUtils.isNotBlank(metricsSpec)) {
-            List<AggregatorFactory> aggregatorFactories;
             try {
-                aggregatorFactories = MAPPER.readValue(metricsSpec, new TypeReference<List<AggregatorFactory>>() {});
+                builder.addAll(MAPPER.readValue(metricsSpec, new TypeReference<List<AggregatorFactory>>() {}));
             } catch (JsonProcessingException e) {
                 throw new IllegalArgumentException(String.format("Failed to deserialize from metricsSpec=%s", metricsSpec), e);
             }
-            builder.addAll(aggregatorFactories);
         } else if (autoMapMetrics) {
             for (Field field : fields) {
                 String fieldName = field.getName();
-                AggregatorType dataAggregatorType = field.getAggregatorType();
-                if (dataAggregatorType == AggregatorType.DOUBLE) {
+                FieldType dataFieldType = field.getFieldType();
+                if (dataFieldType == FieldType.DOUBLE) {
                     builder.add(new DoubleSumAggregatorFactory(fieldName, fieldName));
-                } else if (dataAggregatorType == AggregatorType.LONG) {
+                } else if (dataFieldType == FieldType.LONG) {
                     builder.add(new LongSumAggregatorFactory(fieldName, fieldName));
                 }
             }

@@ -25,13 +25,13 @@ public class Field implements Serializable {
 
     private final String name;
     private final DataType sqlType;
-    private final AggregatorType aggregatorType;
+    private final FieldType fieldType;
     private final int ordinal;
 
     private Field(String name, DataType dataType, int ordinal) {
         this.name = name;
         this.sqlType = dataType;
-        this.aggregatorType = AggregatorType.from(dataType);
+        this.fieldType = FieldType.from(dataType);
         this.ordinal = ordinal;
     }
 
@@ -47,8 +47,8 @@ public class Field implements Serializable {
         return this.sqlType;
     }
 
-    public AggregatorType getAggregatorType() {
-        return aggregatorType;
+    public FieldType getFieldType() {
+        return fieldType;
     }
 
     public int getOrdinal() {
@@ -60,7 +60,7 @@ public class Field implements Serializable {
         return "Field{" +
                 "name='" + name + '\'' +
                 ", dataType=" + sqlType +
-                ", type=" + aggregatorType +
+                ", type=" + fieldType +
                 ", ordinal=" + ordinal +
                 '}';
     }
