@@ -45,6 +45,7 @@ public class WriterContext implements Serializable {
     private final List<String> excludedDimensions;
     private final int segmentMaxRows;
     private final int maxRowsInMemory;
+    private final String metadataDbType;
     private final String metadataDbUri;
     private final String metadataDbUser;
     private final String metadataDbPass;
@@ -79,6 +80,7 @@ public class WriterContext implements Serializable {
         }
         this.maxRowsInMemory = maxRowsInMemory;
 
+        this.metadataDbType = getOrThrow(options, ConfKeys.METADATA_DB_TYPE);
         this.metadataDbUri = getOrThrow(options, ConfKeys.METADATA_DB_URI);
         this.metadataDbUser = getOrThrow(options, ConfKeys.METADATA_DB_USERNAME);
         this.metadataDbPass = getOrThrow(options, ConfKeys.METADATA_DB_PASSWORD);
@@ -141,6 +143,10 @@ public class WriterContext implements Serializable {
 
     public int getMaxRowsInMemory() {
         return maxRowsInMemory;
+    }
+
+    public String getMetadataDbType() {
+        return metadataDbType;
     }
 
     public String getMetadataDbUri() {
@@ -209,6 +215,7 @@ public class WriterContext implements Serializable {
         public static final String MAX_ROWS_IN_MEMORY = "druid.memory.max_rows";
         public static final String SEGMENT_ROLLUP = "druid.segment.rollup";
         // Metadata config
+        public static final String METADATA_DB_TYPE = "druid.metastore.db.type";
         public static final String METADATA_DB_URI = "druid.metastore.db.uri";
         public static final String METADATA_DB_USERNAME = "druid.metastore.db.username";
         public static final String METADATA_DB_PASSWORD = "druid.metastore.db.password";

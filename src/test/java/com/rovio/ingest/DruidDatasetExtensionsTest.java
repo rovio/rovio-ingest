@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.util.Map;
 
 import static com.rovio.ingest.WriterContext.ConfKeys.DATASOURCE_INIT;
