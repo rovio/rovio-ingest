@@ -40,6 +40,7 @@ public class SegmentStorageUpdater {
             s3Config.setBucket(param.getS3Bucket());
             s3Config.setBaseKey(param.getS3BaseKey());
             s3Config.setUseS3aSchema(true);
+            s3Config.setDisableAcl(param.isS3DisableAcl());
             return new S3DataSegmentPusher(serverSideEncryptingAmazonS3, s3Config);
         }
     }
@@ -54,6 +55,7 @@ public class SegmentStorageUpdater {
             s3Config.setBucket(param.getS3Bucket());
             s3Config.setBaseKey(param.getS3BaseKey());
             s3Config.setUseS3aSchema(true);
+            s3Config.setDisableAcl(param.isS3DisableAcl());
             return new S3DataSegmentKiller(serverSideEncryptingAmazonS3, s3Config, new S3InputDataConfig());
         }
     }

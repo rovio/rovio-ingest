@@ -52,6 +52,7 @@ public class WriterContext implements Serializable {
     private final String metadataDbTableBase;
     private final String s3Bucket;
     private final String s3BaseKey;
+    private final boolean s3DisableAcl;
     private final String localDir;
     private final String deepStorageType;
     private final boolean initDataSource;
@@ -92,6 +93,7 @@ public class WriterContext implements Serializable {
 
         this.s3Bucket = options.getOrDefault(ConfKeys.DEEP_STORAGE_S3_BUCKET, null);
         this.s3BaseKey = options.getOrDefault(ConfKeys.DEEP_STORAGE_S3_BASE_KEY, null);
+        this.s3DisableAcl = options.getBoolean(ConfKeys.DEEP_STORAGE_S3_DISABLE_ACL, false);
         this.localDir = options.getOrDefault(ConfKeys.DEEP_STORAGE_LOCAL_DIRECTORY, null);
 
         this.deepStorageType = options.getOrDefault(ConfKeys.DEEP_STORAGE_TYPE, DEFAULT_DRUID_DEEP_STORAGE_TYPE);
@@ -181,6 +183,10 @@ public class WriterContext implements Serializable {
         return s3BaseKey;
     }
 
+    public boolean isS3DisableAcl() {
+        return s3DisableAcl;
+    }
+
     public String getLocalDir() {
         return localDir;
     }
@@ -253,6 +259,7 @@ public class WriterContext implements Serializable {
         // S3 config
         public static final String DEEP_STORAGE_S3_BUCKET = "druid.segment_storage.s3.bucket";
         public static final String DEEP_STORAGE_S3_BASE_KEY = "druid.segment_storage.s3.basekey";
+        public static final String DEEP_STORAGE_S3_DISABLE_ACL = "druid.segment_storage.s3.disableacl";
         // Local config (only for testing)
         public static final String DEEP_STORAGE_LOCAL_DIRECTORY = "druid.segment_storage.local.dir";
     }

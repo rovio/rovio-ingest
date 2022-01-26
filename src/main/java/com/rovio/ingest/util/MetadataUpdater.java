@@ -25,7 +25,8 @@ import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.druid.metadata.MetadataStorageTablesConfig;
 import org.apache.druid.metadata.SQLMetadataConnector;
 import org.apache.druid.metadata.storage.mysql.MySQLConnector;
-import org.apache.druid.metadata.storage.mysql.MySQLConnectorConfig;
+import org.apache.druid.metadata.storage.mysql.MySQLConnectorDriverConfig;
+import org.apache.druid.metadata.storage.mysql.MySQLConnectorSslConfig;
 import org.apache.druid.metadata.storage.postgresql.PostgreSQLConnector;
 import org.apache.druid.metadata.storage.postgresql.PostgreSQLConnectorConfig;
 import org.apache.druid.metadata.storage.postgresql.PostgreSQLTablesConfig;
@@ -94,7 +95,8 @@ public class MetadataUpdater {
             case Mysql:
                 return new MySQLConnector(() -> metadataStorageConnectorConfig,
                         () -> metadataStorageTablesConfig,
-                        new MySQLConnectorConfig());
+                        new MySQLConnectorSslConfig(),
+                        new MySQLConnectorDriverConfig());
             case Postgres:
                 return new PostgreSQLConnector(() -> metadataStorageConnectorConfig,
                         () -> metadataStorageTablesConfig,
