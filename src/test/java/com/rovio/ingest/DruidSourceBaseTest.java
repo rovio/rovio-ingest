@@ -41,10 +41,12 @@ import org.joda.time.Interval;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.*;
 import org.junit.jupiter.api.io.TempDir;
 import org.skife.jdbi.v2.DBI;
+import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.io.File;
@@ -57,15 +59,18 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static com.rovio.ingest.DataSegmentCommitMessage.MAPPER;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
+import static java.util.Arrays.asList;
 import static org.apache.spark.sql.functions.column;
 import static org.junit.Assert.assertEquals;
 
 @Testcontainers
-public class DruidSourceBaseTest extends SharedJavaSparkContext {
+public class DruidSourceBaseTest extends SharedJavaSparkContext implements TestTemplateInvocationContextProvider {
 
     private static final String segmentsTable = MetadataStorageTablesConfig.fromBase("druid").getSegmentsTable();
 
@@ -73,6 +78,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
     protected static final String DB_NAME = "temp";
     protected static final long VERSION_TIME_MILLIS = 1569961771384L;
 
+    public static String dbType = "mysql";
     public static String dbUser = "user";
     public static String dbPass = "pass";
     public static String connectionString;
@@ -83,26 +89,17 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
     @TempDir
     public File testFolder;
 
-    @Container
-    public static MySQLContainer MYSQL = new MySQLContainer()
-            .withUsername(dbUser)
-            .withPassword(dbPass)
-            .withDatabaseName(DB_NAME);
+    private Map<String, JdbcDatabaseContainer<?>> containers;
 
-    @BeforeAll
-    public static void beforeClass() throws Exception {
-        prepareDatabase();
-    }
-
-    public static void prepareDatabase() throws IOException, SQLException {
-        connectionString =  MYSQL.getJdbcUrl();
+    public static void prepareDatabase(JdbcDatabaseContainer db) throws IOException, SQLException {
+        connectionString = db.getJdbcUrl();
         if (!connectionString.contains("useSSL=")) {
             String separator = connectionString.contains("?") ? "&" : "?";
             connectionString = connectionString + separator + "useSSL=false";
         }
         // Druid requires its MySQL database to be created with an UTF8 charset.
-        runSql(String.format("ALTER DATABASE %s CHARACTER SET utf8mb4", DB_NAME));
-        runSql(String.format("CREATE TABLE %1$s (\n"
+        runSql(db, String.format("ALTER DATABASE %s CHARACTER SET utf8mb4", DB_NAME));
+        runSql(db, String.format("CREATE TABLE %1$s (\n"
                         + "  id VARCHAR(255) NOT NULL,\n"
                         + "  dataSource VARCHAR(255) NOT NULL,\n"
                         + "  created_date VARCHAR(255) NOT NULL,\n"
@@ -118,7 +115,21 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
     }
 
     @BeforeEach
-    public void before() {
+    public void before() throws SQLException, IOException {
+        containers = new HashMap<>();
+        final PostgreSQLContainer pg = new PostgreSQLContainer()
+                .withUsername(dbUser)
+                .withPassword(dbPass)
+                .withDatabaseName(DB_NAME);
+        prepareDatabase(pg);
+        containers.put("postgresql", pg);
+        final MySQLContainer mysql = new MySQLContainer()
+                .withUsername(dbUser)
+                .withPassword(dbPass)
+                .withDatabaseName(DB_NAME);
+        prepareDatabase(mysql);
+        containers.put("mysql", mysql);
+
         DateTimeUtils.setCurrentMillisFixed(VERSION_TIME_MILLIS);
 
         // Create test dataset.
@@ -142,12 +153,12 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
     }
 
     @BeforeEach
-    public void setUp() throws SQLException {
-        setUpDb();
+    public void setUp(JdbcDatabaseContainer db) throws SQLException {
+        setUpDb(db);
     }
 
-    public static void setUpDb() throws SQLException {
-        runSql("TRUNCATE TABLE " + segmentsTable);
+    public static void setUpDb(JdbcDatabaseContainer db) throws SQLException {
+        runSql(db, "TRUNCATE TABLE " + segmentsTable);
     }
 
     @AfterEach
@@ -155,9 +166,9 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
         DateTimeUtils.setCurrentMillisSystem();
     }
 
-    private static void runSql(String sql) throws SQLException {
-        try (Connection connection = MYSQL.createConnection("");
-             Statement statement  = connection.createStatement()) {
+    private static void runSql(JdbcDatabaseContainer db, String sql) throws SQLException {
+        try (Connection connection = db.createConnection("");
+             Statement statement = connection.createStatement()) {
             statement.executeUpdate(sql);
         }
     }
@@ -208,11 +219,11 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
         assertEquals(expectedRowCount, rowCount);
     }
 
-  protected Table<Integer, ImmutableMap<String, Object>, ImmutableMap<String, Object>> readSegmentData(Path root,
-                                                                                                       Interval interval,
-                                                                                                       String version,
-                                                                                                       int numShards,
-                                                                                                       boolean isMonth) throws IOException {
+    protected Table<Integer, ImmutableMap<String, Object>, ImmutableMap<String, Object>> readSegmentData(Path root,
+                                                                                                         Interval interval,
+                                                                                                         String version,
+                                                                                                         int numShards,
+                                                                                                         boolean isMonth) throws IOException {
         Table<Integer, ImmutableMap<String, Object>, ImmutableMap<String, Object>> rows = HashBasedTable.create();
         for (DateTime current = interval.getStart(); current.isBefore(interval.getEnd()); current = isMonth ? current.plusMonths(1) : current.plusDays(1)) {
             String relativePath = current + DataSegment.delimiter + (isMonth ? current.plusMonths(1) : current.plusDays(1));
@@ -229,7 +240,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
     }
 
     private ImmutableMap<ImmutableMap<String, Object>, ImmutableMap<String, Object>> readSegmentZip(Interval interval, Path zipPath) throws IOException {
-        Path tmpDir = Files.createTempDirectory(testFolder.toPath(),"temp");
+        Path tmpDir = Files.createTempDirectory(testFolder.toPath(), "temp");
         tmpDir.toFile().deleteOnExit();
         ImmutableMap.Builder<ImmutableMap<String, Object>, ImmutableMap<String, Object>> values = ImmutableMap.builder();
 
@@ -257,5 +268,45 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
             }
         }
         return values.build();
+    }
+
+    @Override
+    public boolean supportsTestTemplate(ExtensionContext extensionContext) {
+        return true;
+    }
+
+    @Override
+    public Stream<TestTemplateInvocationContext> provideTestTemplateInvocationContexts(ExtensionContext extensionContext) {
+        return containers.keySet().stream().map(this::invocationContext);
+    }
+
+    private TestTemplateInvocationContext invocationContext(final String database) {
+        return new TestTemplateInvocationContext() {
+
+            @Override
+            public String getDisplayName(int invocationIndex) {
+                return database;
+            }
+
+            @Override
+            public List<Extension> getAdditionalExtensions() {
+                final JdbcDatabaseContainer<?> databaseContainer = containers.get(database);
+                return asList(
+                        (BeforeEachCallback) context -> databaseContainer.start(),
+                        (AfterAllCallback) context -> databaseContainer.stop(),
+                        new ParameterResolver() {
+
+                            @Override
+                            public boolean supportsParameter(ParameterContext parameterCtx, ExtensionContext extensionCtx) {
+                                return parameterCtx.getParameter().getType().equals(JdbcDatabaseContainer.class);
+                            }
+
+                            @Override
+                            public Object resolveParameter(ParameterContext parameterCtx, ExtensionContext extensionCtx) {
+                                return databaseContainer;
+                            }
+                        });
+            }
+        };
     }
 }

@@ -18,13 +18,12 @@ package com.rovio.ingest.util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.rovio.ingest.WriterContext;
+import com.rovio.ingest.model.DbType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.druid.indexer.SQLMetadataStorageUpdaterJobHandler;
 import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.druid.metadata.MetadataStorageTablesConfig;
 import org.apache.druid.metadata.SQLMetadataConnector;
-import org.apache.druid.metadata.storage.mysql.MySQLConnector;
-import org.apache.druid.metadata.storage.mysql.MySQLConnectorConfig;
 import org.apache.druid.timeline.DataSegment;
 import org.skife.jdbi.v2.PreparedBatch;
 import org.slf4j.Logger;
@@ -75,13 +74,15 @@ public class MetadataUpdater {
 
         MetadataStorageTablesConfig metadataStorageTablesConfig = MetadataStorageTablesConfig.fromBase(param.getMetadataDbTableBase());
         this.segmentsTable = metadataStorageTablesConfig.getSegmentsTable();
-        this.sqlConnector = new MySQLConnector(() -> metadataStorageConnectorConfig,
-                () -> metadataStorageTablesConfig,
-                new MySQLConnectorConfig());
+
+        final DbType dbType = DbType.from(param.getMetadataDbType());
+        final SQLConnectorFactory sqlConnectorFactory = new SQLConnectorFactory();
+        this.sqlConnector = sqlConnectorFactory.makeSqlConnector(dbType, metadataStorageConnectorConfig, metadataStorageTablesConfig);
         this.metadataStorageUpdaterJobHandler = new SQLMetadataStorageUpdaterJobHandler(sqlConnector);
 
         testDbConnection();
     }
+
 
     private void testDbConnection() {
         boolean tableExists = this.sqlConnector.retryWithHandle(h -> this.sqlConnector.tableExists(h, this.segmentsTable));
