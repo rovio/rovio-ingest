@@ -85,7 +85,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
 
     @Container
     public static MySQLContainer MYSQL =
-            // MySQL 8 requires mysql-connector-java 8.x - test that
+            // MySQL 8 requires mysql-connector-java 8.x so we test against that.
             // The mysql-connector-java 8.x also works with MySQL 5
             new MySQLContainer("mysql:8.0.28")
             .withUsername(dbUser)
