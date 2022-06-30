@@ -332,7 +332,7 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 | `druid.datasource.init` | Boolean flag for (re-)initializing Druid datasource. If `true`, any pre-existing segments for the datasource is marked as unused. | `false` |
 | `druid.bitmap_factory` | Compression format for bitmap indexes. Possible values: `concise`, `roaring`. For type `roaring`, the boolean property compressRunOnSerialization is always set to `true`. `rovio-ingest` uses `concise` by default regardless of Druid library version. | `concise` |
 | `druid.segment.rollup` | Whether to rollup data during ingestion | `true` |
-| `druid.metrics_spec` | List of aggregators to apply at ingestion time as a json array string. Possible aggregators: [metricsSpec in Druid Docs](https://druid.apache.org/docs/latest/ingestion/ingestion-spec.html#metricsspec). See also: [No-Code wrapper script](#no-code-wrapper-script). | `longSum` or `doubleSum` for all numeric columns, depending on the data types |
+| `druid.metrics_spec` | List of aggregators to apply at ingestion time as a json array string. Possible aggregators: [metricsSpec in Druid Docs](https://druid.apache.org/docs/latest/ingestion/ingestion-spec.html#metricsspec). See also: [No-Code wrapper script](#no-code-wrapper-script). |  `None` (if no json is provided, `longSum` or `doubleSum` is inferred for all numeric columns based on the input data types) |
 
 ## Limitations
 
