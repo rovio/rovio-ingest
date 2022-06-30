@@ -13,6 +13,7 @@ For example, this allows reading an [Apache Hive™](https://hive.apache.org/) t
 - [Data type conversions](#data-type-conversions)
 - [Segment granularity](#segment-granularity)
 - [Usage](#usage)
+  - [No-Code wrapper script](#no-code-wrapper-script)
   - [PySpark](#pyspark)
   - [Scala](#scala)
   - [Java](#java)
@@ -105,6 +106,14 @@ The main steps are always the same:
 1. The provided Dataset extension is first used to validate and repartition a Dataset so that it
 satisfies the requirements of `DruidSource`
 1. Then the Dataset can be written with the `DruidSource` format
+
+### No-Code wrapper script
+
+An example of a No-Code solution: [A general-purpose pyspark script for ingesting a Hive table to Druid](https://gist.github.com/vivek-balakrishnan-rovio/d7ac058d7a70cccf5f4165e8aeed9e9c), that enables users to avoid writing any Spark code.
+
+In the basic case with this script user only needs to pass the source table name.
+
+The script also offers some optional arguments for convenience, for example to customize the target types of columns. This kind of driver script is also a natural place for providing common options for Druid deep storage & DB.
 
 ### PySpark
 
@@ -293,7 +302,6 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 | `druid.metastore.db.uri` | Druid Metadata Storage database URI |
 | `druid.metastore.db.username` | Druid Metadata Storage database username |
 | `druid.metastore.db.password` | Druid Metadata Storage database password |
-| `druid.metrics_spec` | List of metrics aggregation provided as json string, when not provided defaults to using sum aggregator for all numeric columns.|
 
 \+ Storage type specific properties depending on value of `druid.segment_storage.type`:
 
@@ -324,6 +332,7 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 | `druid.datasource.init` | Boolean flag for (re-)initializing Druid datasource. If `true`, any pre-existing segments for the datasource is marked as unused. | `false` |
 | `druid.bitmap_factory` | Compression format for bitmap indexes. Possible values: `concise`, `roaring`. For type `roaring`, the boolean property compressRunOnSerialization is always set to `true`. `rovio-ingest` uses `concise` by default regardless of Druid library version. | `concise` |
 | `druid.segment.rollup` | Whether to rollup data during ingestion | `true` |
+| `druid.metrics_spec` | List of aggregators to apply at ingestion time as a json array string. Possible aggregators: [metricsSpec in Druid Docs](https://druid.apache.org/docs/latest/ingestion/ingestion-spec.html#metricsspec). See also: [No-Code wrapper script](#no-code-wrapper-script). |  `None` (if no json is provided, `longSum` or `doubleSum` is inferred for all numeric columns based on the input data types) |
 
 ## Limitations
 
