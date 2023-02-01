@@ -58,7 +58,7 @@
         <scala.minor.version>10</scala.minor.version>
         <spark.version>3.0.1</spark.version>
         <surefire.version>3.0.0-M5</surefire.version>
-        <testcontainers.version>1.15.1</testcontainers.version>
+        <testcontainers.version>1.17.6</testcontainers.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
@@ -84,7 +84,17 @@
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>net.java.dev.jna</groupId>
+                    <artifactId>jna-platform</artifactId>
+                </exclusion>
             </exclusions>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna-platform</artifactId>
+            <version>5.8.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
