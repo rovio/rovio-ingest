@@ -125,7 +125,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
         DateTimeUtils.setCurrentMillisFixed(VERSION_TIME_MILLIS);
 
         // Create test dataset.
-        spark = SparkSession.builder().sparkContext(sc()).config("spark.sql.session.timeZone", "UTC").config("spark.master", "local").getOrCreate();
+        spark = SparkSession.builder().sparkContext(sc()).config("spark.sql.session.timeZone", "UTC").config("spark.driver.bindAddress", "127.0.0.1").config("spark.master", "local").getOrCreate();
         // This is for some udf-level unit-testing. JVM API users don't need to register this udf.
         spark.udf().register("normalizeTimeColumn", new NormalizeTimeColumnUDF(), DataTypes.LongType);
 

@@ -51,6 +51,7 @@ class DruidDatasetExtensionsSpec extends FlatSpec with Matchers with BeforeAndAf
     SparkSession.builder()
       .appName("Spark/MLeap Parity Tests")
       .config("spark.sql.session.timeZone", "UTC")
+      .config("spark.driver.bindAddress", "127.0.0.1")
       .master("local[2]")
       .getOrCreate()
   }

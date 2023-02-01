@@ -365,6 +365,8 @@ To run tests
 
 Python code is managed by [poetry](https://python-poetry.org/).
 
+If using Apple Silicon, enable Rosetta emulation for the following to work.
+
 To create the venv with required modules, cd to the `python` subfolder and run
 
     poetry install
