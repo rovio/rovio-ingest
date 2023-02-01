@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2021 Rovio Entertainment Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +18,12 @@ package com.rovio.ingest.extensions
 import com.rovio.ingest.DruidSource
 import com.rovio.ingest.WriterContext.ConfKeys.{DATA_SOURCE, TIME_COLUMN}
 import com.rovio.ingest.util.NormalizeTimeColumnUDF
+import org.apache.druid.java.util.common.granularity.GranularityType
 import org.apache.spark.sql.expressions.Window
-import org.apache.spark.sql.functions.{column, unix_timestamp}
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.DataTypes
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, DataFrameWriter, Dataset, Row, functions}
+import org.apache.spark.sql.{DataFrame, DataFrameWriter, Dataset, Row}
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ListBuffer
@@ -35,6 +36,7 @@ object DruidDatasetExtensions {
 
   @SerialVersionUID(1L)
   implicit class DruidDataFrameWriter[T](writer: DataFrameWriter[T]) extends Serializable {
+    //noinspection ScalaCustomHdfsFormat
     def druid(dataSource: String, timeColumn: String): Unit =
       writer
         .option(DATA_SOURCE, dataSource)
@@ -92,23 +94,31 @@ object DruidDatasetExtensions {
 
       def normalize(instant: Long): Long = NormalizeTimeColumnUDF.normalize(instant, granularityString)
 
-      val normalize_udf = functions.udf(normalize _)
-      validate(timeColumn, excludeColumnsWithUnknownTypes)
-        .withColumn("__PARTITION_TIME__",
+      val normalize_udf = udf(normalize _)
+      var df = validate(timeColumn, excludeColumnsWithUnknownTypes)
+
+      // if we're partitioning by day and the time column is of DateType we can simplify
+      if (granularityString == GranularityType.DAY.name() &&  dataset.schema(timeColumn).dataType == DateType) {
+        df = df.withColumn("__PARTITION_TIME__", col(timeColumn).cast(TimestampType))
+      }
+      else {
+        df = df.withColumn("__PARTITION_TIME__",
           normalize_udf(unix_timestamp(column(timeColumn))
             .multiply(1000)
             .cast(DataTypes.LongType))
             .divide(1000)
             .cast(DataTypes.TimestampType))
-        .withColumn("__num_rows__",
-          functions.row_number()
-            .over(Window.partitionBy("__PARTITION_TIME__")
-              .orderBy("__PARTITION_TIME__")))
-        .withColumn("__PARTITION_NUM__",
-          ((functions.col("__num_rows__") - 1) / functions.lit(rowsPerSegment))
-            .cast(DataTypes.IntegerType))
-        .repartition(column("__PARTITION_TIME__"), column("__PARTITION_NUM__"))
-        .drop("__num_rows__")
+      }
+
+      df.withColumn("__num_rows__",
+        row_number()
+          .over(Window.partitionBy("__PARTITION_TIME__")
+            .orderBy("__PARTITION_TIME__")))
+      .withColumn("__PARTITION_NUM__",
+        ((col("__num_rows__") - 1) / lit(rowsPerSegment))
+          .cast(DataTypes.IntegerType))
+      .repartition(column("__PARTITION_TIME__"), column("__PARTITION_NUM__"))
+      .drop("__num_rows__")
     }
 
     private def validate(timeColumn: String,

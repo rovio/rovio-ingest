@@ -17,7 +17,10 @@ package com.rovio.ingest;
 
 import com.rovio.ingest.model.Field;
 import com.rovio.ingest.model.SegmentSpec;
+import com.rovio.ingest.util.ReflectionUtils;
 import com.rovio.ingest.util.SegmentStorageUpdater;
+import org.apache.druid.common.config.NullHandling;
+import org.apache.druid.common.config.NullValueHandlingConfig;
 import org.apache.druid.data.input.Committer;
 import org.apache.druid.data.input.InputRow;
 import org.apache.druid.data.input.MapBasedInputRow;
@@ -34,11 +37,7 @@ import org.apache.druid.segment.indexing.RealtimeTuningConfig;
 import org.apache.druid.segment.loading.DataSegmentKiller;
 import org.apache.druid.segment.loading.DataSegmentPusher;
 import org.apache.druid.segment.realtime.FireDepartmentMetrics;
-import org.apache.druid.segment.realtime.appenderator.Appenderator;
-import org.apache.druid.segment.realtime.appenderator.Appenderators;
-import org.apache.druid.segment.realtime.appenderator.SegmentIdentifier;
-import org.apache.druid.segment.realtime.appenderator.SegmentNotWritableException;
-import org.apache.druid.segment.realtime.appenderator.SegmentsAndMetadata;
+import org.apache.druid.segment.realtime.appenderator.*;
 import org.apache.druid.segment.realtime.plumber.Committers;
 import org.apache.druid.segment.realtime.plumber.CustomVersioningPolicy;
 import org.apache.druid.segment.writeout.TmpFileSegmentWriteOutMediumFactory;
@@ -55,6 +54,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -82,7 +83,7 @@ class TaskDataWriter implements DataWriter<InternalRow> {
     private final Supplier<Committer> committerSupplier;
     private final Set<DataSegment> pushedSegments;
 
-    private SegmentIdentifier current;
+    private SegmentIdWithShardSpec current;
 
     TaskDataWriter(long taskId, WriterContext context, SegmentSpec segmentSpec) {
         this.taskId = taskId;
@@ -93,27 +94,26 @@ class TaskDataWriter implements DataWriter<InternalRow> {
         DataSegmentPusher segmentPusher = SegmentStorageUpdater.createPusher(context);
         File basePersistDirectory = new File(tuningConfig.getBasePersistDirectory(), UUID.randomUUID().toString());
         this.segmentKiller = SegmentStorageUpdater.createKiller(context);
-        this.appenderator = Appenderators.createOffline(
-                dataSchema,
-                tuningConfig.withBasePersistDirectory(basePersistDirectory),
-                new FireDepartmentMetrics(),
-                segmentPusher,
-                MAPPER,
-                INDEX_IO,
-                INDEX_MERGER_V_9);
+        this.appenderator = new DefaultOfflineAppenderatorFactory(segmentPusher, MAPPER, INDEX_IO, INDEX_MERGER_V_9)
+                .build(dataSchema, tuningConfig.withBasePersistDirectory(basePersistDirectory), new FireDepartmentMetrics());
         this.committerSupplier = Committers::nil;
         this.pushedSegments = new HashSet<>();
         this.appenderator.startJob();
+
+        try {
+            ReflectionUtils.setStaticFieldValue(NullHandling.class, "INSTANCE", new NullValueHandlingConfig(context.isUseDefaultValueForNull()));
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new IllegalStateException("Unable to set null handling!!", e);
+        }
     }
 
     @Override
     public void write(InternalRow record) throws IOException {
         try {
             Map<String, Object> map = parse(record);
-            // Adjust as spark returns long value with milliseconds.
-            long timestamp = (long) map.get(SegmentSpec.TIME_DIMENSION) / 1000;
+            long timestamp = (long) map.get(SegmentSpec.TIME_DIMENSION);
             InputRow inputRow = new MapBasedInputRow(timestamp,
-                    dataSchema.getParser().getParseSpec().getDimensionsSpec().getDimensionNames(), map);
+                    dataSchema.getDimensionsSpec().getDimensionNames(), map);
 
             long bucketStartEpoch = segmentSpec.getPartitionTime() != null
                     // Adjust as spark returns long value with milliseconds.
@@ -124,7 +124,7 @@ class TaskDataWriter implements DataWriter<InternalRow> {
 
             if (segmentSpec.getPartitionTime() != null && segmentSpec.getPartitionNum() != null) {
                 int partitionNum = record.getInt(segmentSpec.getPartitionNum().getOrdinal());
-                current = newSegmentIdentifier(interval, partitionNum);
+                current = newSegmentId(interval, partitionNum);
             } else {
                 if (current != null && !current.getInterval().equals(interval)) {
                     // Check if any open segment has the same interval.
@@ -138,14 +138,14 @@ class TaskDataWriter implements DataWriter<InternalRow> {
 
                 if (current == null) {
                     // New interval.
-                    current = newSegmentIdentifier(interval, 0);
+                    current = newSegmentId(interval, 0);
                 }
 
                 if (appenderator.getSegments().contains(current) && appenderator.getRowCount(current) >= maxRows) {
                     LOG.debug("TaskId={}, New segment interval = {} has {} rows", taskId, interval, appenderator.getRowCount(current));
                     pushSegments(Collections.singletonList(current));
                     int partition = current.getShardSpec().getPartitionNum();
-                    current = newSegmentIdentifier(interval, partition + 1);
+                    current = newSegmentId(interval, partition + 1);
                 }
             }
 
@@ -158,7 +158,7 @@ class TaskDataWriter implements DataWriter<InternalRow> {
     @Override
     public WriterCommitMessage commit() throws IOException {
         try {
-            List<SegmentIdentifier> toPush = appenderator.getSegments();
+            List<SegmentIdWithShardSpec> toPush = appenderator.getSegments();
             pushSegments(toPush);
             LOG.info("Commit taskId = {}, pushedSegments={}", taskId, pushedSegments.size());
             return DataSegmentCommitMessage.getInstance(pushedSegments);
@@ -188,8 +188,16 @@ class TaskDataWriter implements DataWriter<InternalRow> {
         for (Field field : segmentSpec.getFields()) {
             String columnName = field.getName();
             if (segmentSpec.getTimeColumn().equals(columnName)) {
+                Long tsVal = (Long) record.get(field.getOrdinal(), DataTypes.TimestampType);
+                if (tsVal != null && field.getSqlType() == DataTypes.DateType) {
+                    // date is stored as days since epoch
+                    tsVal = LocalDate.ofEpochDay(tsVal).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+                }
+                else if (tsVal != null) {
+                    tsVal = tsVal / 1000;
+                }
                 // the configured time columnName is mapped to __time
-                map.put(SegmentSpec.TIME_DIMENSION, record.get(field.getOrdinal(), DataTypes.LongType));
+                map.put(SegmentSpec.TIME_DIMENSION, tsVal);
             } else {
                 map.put(columnName, record.get(field.getOrdinal(), field.getSqlType()));
             }
@@ -203,8 +211,8 @@ class TaskDataWriter implements DataWriter<InternalRow> {
         return map;
     }
 
-    private SegmentIdentifier newSegmentIdentifier(Interval interval, int partitionNum) {
-        return new SegmentIdentifier(
+    private SegmentIdWithShardSpec newSegmentId(Interval interval, int partitionNum) {
+        return new SegmentIdWithShardSpec(
                 dataSchema.getDataSource(),
                 interval,
                 tuningConfig.getVersioningPolicy().getVersion(interval),
@@ -212,16 +220,16 @@ class TaskDataWriter implements DataWriter<InternalRow> {
         );
     }
 
-    private void pushSegments(List<SegmentIdentifier> toPush) throws IOException {
+    private void pushSegments(List<SegmentIdWithShardSpec> toPush) throws IOException {
         try {
-            SegmentsAndMetadata segmentsAndMetadata = appenderator.push(toPush, committerSupplier.get(), false).get();
+            SegmentsAndCommitMetadata segmentsAndMetadata = appenderator.push(toPush, committerSupplier.get(), false).get();
             List<DataSegment> updated = segmentsAndMetadata.getSegments();
             if (updated.size() != toPush.size()) {
                 LOG.error("Failed to push all segments, taskId={}, toPush={}, updated={}", taskId, toPush.size(), updated.size());
                 throw new IOException("Failed to push all segments");
             }
 
-            for (SegmentIdentifier identifier : toPush) {
+            for (SegmentIdWithShardSpec identifier : toPush) {
                 LOG.debug("TaskId={} pushed segment segmentId={}", taskId, identifier);
                 appenderator.drop(identifier).get();
             }
@@ -234,8 +242,10 @@ class TaskDataWriter implements DataWriter<InternalRow> {
 
     private RealtimeTuningConfig getTuningConfig(WriterContext context) {
         return new RealtimeTuningConfig(
+                null,
                 context.getMaxRowsInMemory(),
                 -1L,
+                null,
                 null,
                 null,
                 null,
@@ -244,7 +254,7 @@ class TaskDataWriter implements DataWriter<InternalRow> {
                 null,
                 null,
                 new IndexSpec(getBitmapSerdeFactory(context), null, null, null),
-                true,
+                null,
                 0,
                 0,
                 true,

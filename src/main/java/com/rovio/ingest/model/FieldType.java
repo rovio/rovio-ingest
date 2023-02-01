@@ -18,13 +18,13 @@ package com.rovio.ingest.model;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 
-public enum AggregatorType {
+public enum FieldType {
     TIMESTAMP,
     DOUBLE,
     LONG,
     STRING;
 
-    public static AggregatorType from(DataType dataType) {
+    public static FieldType from(DataType dataType) {
         if (isNumericType(dataType)) {
             return LONG;
         }
@@ -45,7 +45,7 @@ public enum AggregatorType {
     }
 
     private static boolean isDateTimeType(DataType dataType) {
-        return dataType == DataTypes.TimestampType;
+        return dataType == DataTypes.DateType || dataType == DataTypes.TimestampType;
     }
 
     private static boolean isNumericType(DataType dataType) {
