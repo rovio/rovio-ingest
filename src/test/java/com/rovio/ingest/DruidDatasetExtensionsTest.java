@@ -38,7 +38,10 @@ import static com.rovio.ingest.WriterContext.ConfKeys.METRICS_SPEC;
 import static com.rovio.ingest.WriterContext.ConfKeys.QUERY_GRANULARITY;
 import static com.rovio.ingest.WriterContext.ConfKeys.SEGMENT_GRANULARITY;
 import static org.apache.spark.sql.functions.column;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
 

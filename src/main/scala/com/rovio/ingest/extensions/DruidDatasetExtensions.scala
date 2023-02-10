@@ -20,7 +20,7 @@ import com.rovio.ingest.WriterContext.ConfKeys.{DATA_SOURCE, TIME_COLUMN}
 import com.rovio.ingest.util.NormalizeTimeColumnUDF
 import org.apache.druid.java.util.common.granularity.GranularityType
 import org.apache.spark.sql.expressions.Window
-import org.apache.spark.sql.functions._
+import org.apache.spark.sql.functions.{column, unix_timestamp, udf, row_number, col, lit}
 import org.apache.spark.sql.types.DataTypes
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, DataFrameWriter, Dataset, Row}

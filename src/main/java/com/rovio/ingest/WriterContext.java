@@ -30,6 +30,7 @@ public class WriterContext implements Serializable {
     // Default values
     private static final String DEFAULT_QUERY_GRANULARITY = "DAY";
     private static final String DEFAULT_DRUID_METADATA_DB_TABLE_BASE = "druid";
+    private static final String DEFAULT_DRUID_METADATA_DB_TYPE = "mysql";
     private static final int DEFAULT_MAX_ROWS_PER_SEGMENT = 5_000_000;
     private static final String DEFAULT_SEGMENT_GRANULARITY = "DAY";
     private static final int DEFAULT_MAX_ROWS_IN_MEMORY = 75000;
@@ -85,7 +86,7 @@ public class WriterContext implements Serializable {
         }
         this.maxRowsInMemory = maxRowsInMemory;
 
-        this.metadataDbType = getOrThrow(options, ConfKeys.METADATA_DB_TYPE);
+        this.metadataDbType = options.getOrDefault(ConfKeys.METADATA_DB_TYPE, DEFAULT_DRUID_METADATA_DB_TYPE);
         this.metadataDbUri = getOrThrow(options, ConfKeys.METADATA_DB_URI);
         this.metadataDbUser = getOrThrow(options, ConfKeys.METADATA_DB_USERNAME);
         this.metadataDbPass = getOrThrow(options, ConfKeys.METADATA_DB_PASSWORD);
@@ -111,7 +112,7 @@ public class WriterContext implements Serializable {
         this.version = version;
     }
 
-    static WriterContext from(CaseInsensitiveStringMap options, String version) {
+    public static WriterContext from(CaseInsensitiveStringMap options, String version) {
         return new WriterContext(options, version);
     }
 

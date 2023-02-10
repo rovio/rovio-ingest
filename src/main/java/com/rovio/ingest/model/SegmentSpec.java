@@ -20,7 +20,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.druid.data.input.impl.*;
+import org.apache.druid.data.input.impl.DimensionSchema;
+import org.apache.druid.data.input.impl.DimensionsSpec;
+import org.apache.druid.data.input.impl.DoubleDimensionSchema;
+import org.apache.druid.data.input.impl.LongDimensionSchema;
+import org.apache.druid.data.input.impl.StringDimensionSchema;
+import org.apache.druid.data.input.impl.TimestampSpec;
 import org.apache.druid.java.util.common.granularity.Granularity;
 import org.apache.druid.query.aggregation.AggregatorFactory;
 import org.apache.druid.query.aggregation.DoubleSumAggregatorFactory;
@@ -116,7 +121,7 @@ public class SegmentSpec implements Serializable {
                 "Schema has no dimensions");
 
         Preconditions.checkArgument(!rollup || fields.stream().anyMatch(f -> f.getFieldType() == FieldType.LONG || f.getFieldType() == FieldType.DOUBLE),
-                "Schema has rollup enable but has no metrics");
+                "Schema has rollup enabled but has no metrics");
 
         if (partitionTime != null) {
             Preconditions.checkArgument(partitionTime.getFieldType() == FieldType.TIMESTAMP,
@@ -200,15 +205,14 @@ public class SegmentSpec implements Serializable {
             String fieldName = field.getName();
             if (field.getFieldType() == FieldType.STRING) {
                 builder.add(StringDimensionSchema.create(fieldName));
-            }
-            else if (!getTimeColumn().equals(fieldName) && !aggregatorFields.contains(fieldName)) {
+            } else if (!getTimeColumn().equals(fieldName) && !aggregatorFields.contains(fieldName)) {
                 if (field.getFieldType() == FieldType.LONG) {
                     builder.add(new LongDimensionSchema(fieldName));
-                }
-                else if (field.getFieldType() == FieldType.DOUBLE) {
+                } else if (field.getFieldType() == FieldType.DOUBLE) {
                     builder.add(new DoubleDimensionSchema(fieldName));
-                }
-                else if (field.getFieldType() == FieldType.TIMESTAMP) {
+                } else if (field.getFieldType() == FieldType.TIMESTAMP) {
+                    // TODO is this branch ever possible? There's a precondition against FieldType.TIMESTAMP and
+                    //  DruidDatasetExtensions converts TimestampType & DateType to StringType.
                     builder.add(new LongDimensionSchema(fieldName));
                 }
             }

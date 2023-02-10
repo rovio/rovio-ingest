@@ -36,12 +36,12 @@ Overview diagram:
 ## Software requirements
 
 rovio-ingest requires
-* Apache Spark 3.1.1* 
+* Apache Spark 3* 
 * JDK8 (8u92+ or later).
 * Linux or MacOS.
 * Git repo must be cloned under a path that doesn't have spaces.
 
-(*) Spark 2 is not supported, but feel free to create a Github issue if you would need that.
+*) Spark 2 is not supported, but feel free to create a Github issue if you would need that.
 
 ## Motivation
 
@@ -66,6 +66,8 @@ The Dataset extension performs the following validations:
 The Dataset extension performs the following transformations:
 * Drops all columns of complex datatypes such as `StructType`, `MapType` or `ArrayType` as they
 are not supported by `DruidSource`. This is only done if `excludeColumnsWithUnknownTypes` is set to true, otherwise validation has already failed.
+* Converts `Date`/`Timestamp` type columns to `String`, except for the `time_column`
+    - See [Druid Docs / Data types](https://druid.apache.org/docs/latest/querying/sql.html#standard-types)
 * Adds a new column `__PARTITION_TIME__` whose value is based on `time_column` column and the given [segment granularity](#segment-granularity)
 (applies
 [NormalizeTimeColumnUDF](src/main/java/com/rovio/ingest/util/NormalizeTimeColumnUDF.java))
@@ -81,8 +83,7 @@ added. `__PARTITION_TIME__` & `__PARTITION_NUM__` columns are always excluded fr
 The following type conversions are done on ingestion:
 - `Float` is converted to `Double`
     - See [Druid Docs / Double Column storage](https://druid.apache.org/docs/latest/configuration/index.html#double-column-storage))
-- `Date`/`Timestamp` is converted to `Long`, except for the `time_column`
-    - See [Druid Docs / Data types](https://druid.apache.org/docs/latest/querying/sql.html#standard-types)
+- `Boolean` is converted to `String`
 
 ## Segment granularity
 
@@ -301,8 +302,7 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 | Property | Description |
 | --- |--- |
 | `druid.datasource` | Name of the target datasource in Druid |
-| `druid.time_column` | Name of the column in the Spark DataFrame to be translated as Druid `__time` interval. Must be of `TimestampType`. |
-| `druid.metastore.db.type` | Druid Metadata Storage database type (either "mysql" or "postgres") |
+| `druid.time_column` | Name of the column in the Spark DataFrame to be translated as Druid `__time` interval. Must be of `DateType` or `TimestampType`. |
 | `druid.metastore.db.uri` | Druid Metadata Storage database URI |
 | `druid.metastore.db.username` | Druid Metadata Storage database username |
 | `druid.metastore.db.password` | Druid Metadata Storage database password |
@@ -326,6 +326,7 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 
 | Property | Description | Default |
 | --- | --- | --- |
+| `druid.metastore.db.type` | Druid Metadata Storage database type. Possible values: `mysql`, `postgres`. | `mysql` |
 | `druid.metastore.db.table.base` | Druid Metadata Storage database table prefix | `druid` |
 | `druid.segment_granularity` | Segment Granularity | `DAY` |
 | `druid.query_granularity` | Query granularity | `DAY` |
@@ -333,6 +334,7 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 | `druid.segment.max_rows` | Max number of rows per segment | `5000000` |
 | `druid.memory.max_rows` | Max number of rows to keep in memory in spark data writer | `75000` |
 | `druid.segment_storage.type` | Type of Deep Storage to use. Allowed values: `s3`, `local`. | `s3` |
+| `druid.segment_storage.s3.disableacl` | Whether to disable ACL in S3 config. | `false` |
 | `druid.datasource.init` | Boolean flag for (re-)initializing Druid datasource. If `true`, any pre-existing segments for the datasource is marked as unused. | `false` |
 | `druid.bitmap_factory` | Compression format for bitmap indexes. Possible values: `concise`, `roaring`. For type `roaring`, the boolean property compressRunOnSerialization is always set to `true`. `rovio-ingest` uses `concise` by default regardless of Druid library version. | `concise` |
 | `druid.segment.rollup` | Whether to rollup data during ingestion | `true` |
@@ -349,7 +351,7 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 - `overwrite` as Spark write mode
 - `S3` as Druid Deep Storage
     - Also `local` Deep Storage, but it's only useful for testing
-    - `MySQL` or `PostgreSQL` as Druid Metadata Storage
+- `MySQL` or `PostgreSQL` as Druid Metadata Storage
 
 Contributions are welcome to support other write modes or combinations of Deep Storage & Metadata
 Storage.

@@ -107,6 +107,26 @@ public class DruidSourceTest extends DruidSourceBaseTest {
     }
 
     @Test
+    public void passWhenPartitionedByDate() throws IOException {
+        Dataset<Row> dataset = loadCsv(spark, "/data.csv")
+                // Convert TimestampType -> DateType
+                .withColumn("date", column("date").cast(DataTypes.DateType));
+        dataset = dataset.repartition(column("date"));
+        dataset.show(false);
+
+        dataset.write()
+                .format("com.rovio.ingest.DruidSource")
+                .mode(SaveMode.Overwrite)
+                .options(options)
+                .save();
+
+        Interval interval = new Interval(DateTime.parse("2019-10-16T00:00:00Z"), DateTime.parse("2019-10-18T00:00:00Z"));
+        String version = DateTime.now(ISOChronology.getInstanceUTC()).toString();
+        verifySegmentPath(Paths.get(testFolder.toString(), DATA_SOURCE), interval, version, 1, false);
+        verifySegmentTable(interval, version, true, 2);
+    }
+
+    @Test
     public void passWhenPartitionedByTransitiveTimeDimension() throws IOException {
         Dataset<Row> dataset = loadCsv(spark, "/data.csv");
         List<Column> columns = Lists.newArrayList(unix_timestamp(column("date")).multiply(1000), lit("DAY"));

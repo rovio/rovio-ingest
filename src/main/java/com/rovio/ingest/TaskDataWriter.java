@@ -37,7 +37,11 @@ import org.apache.druid.segment.indexing.RealtimeTuningConfig;
 import org.apache.druid.segment.loading.DataSegmentKiller;
 import org.apache.druid.segment.loading.DataSegmentPusher;
 import org.apache.druid.segment.realtime.FireDepartmentMetrics;
-import org.apache.druid.segment.realtime.appenderator.*;
+import org.apache.druid.segment.realtime.appenderator.Appenderator;
+import org.apache.druid.segment.realtime.appenderator.DefaultOfflineAppenderatorFactory;
+import org.apache.druid.segment.realtime.appenderator.SegmentIdWithShardSpec;
+import org.apache.druid.segment.realtime.appenderator.SegmentNotWritableException;
+import org.apache.druid.segment.realtime.appenderator.SegmentsAndCommitMetadata;
 import org.apache.druid.segment.realtime.plumber.Committers;
 import org.apache.druid.segment.realtime.plumber.CustomVersioningPolicy;
 import org.apache.druid.segment.writeout.TmpFileSegmentWriteOutMediumFactory;
@@ -192,8 +196,8 @@ class TaskDataWriter implements DataWriter<InternalRow> {
                 if (tsVal != null && field.getSqlType() == DataTypes.DateType) {
                     // date is stored as days since epoch
                     tsVal = LocalDate.ofEpochDay(tsVal).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
-                }
-                else if (tsVal != null) {
+                } else if (tsVal != null) {
+                    // Adjust to millis as spark returns long value with microseconds.
                     tsVal = tsVal / 1000;
                 }
                 // the configured time columnName is mapped to __time

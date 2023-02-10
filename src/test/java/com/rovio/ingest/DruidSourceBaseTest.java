@@ -32,7 +32,6 @@ import org.apache.druid.segment.QueryableIndexStorageAdapter;
 import org.apache.druid.segment.realtime.firehose.IngestSegmentFirehose;
 import org.apache.druid.segment.realtime.firehose.WindowedStorageAdapter;
 import org.apache.druid.segment.transform.TransformSpec;
-import org.apache.druid.timeline.DataSegment;
 import org.apache.druid.utils.CompressionUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -47,10 +46,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 import org.skife.jdbi.v2.DBI;
+import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 import java.io.File;
 import java.io.IOException;
@@ -72,16 +72,14 @@ import static org.junit.Assert.assertEquals;
 @Testcontainers
 public class DruidSourceBaseTest extends SharedJavaSparkContext {
 
-    private static final String segmentsTable = MetadataStorageTablesConfig.fromBase("druid").getSegmentsTable();
+    public static final String segmentsTable = MetadataStorageTablesConfig.fromBase("druid").getSegmentsTable();
 
-    protected static final String DATA_SOURCE = "temp";
-    protected static final String DB_NAME = "temp";
-    protected static final long VERSION_TIME_MILLIS = 1569961771384L;
+    public static final String DATA_SOURCE = "temp";
+    public static final String DB_NAME = "temp";
+    public static final long VERSION_TIME_MILLIS = 1569961771384L;
 
-    public static String dbType = "mysql";
     public static String dbUser = "user";
     public static String dbPass = "pass";
-    public static String connectionString;
 
     protected SparkSession spark;
     protected Map<String, String> options;
@@ -90,40 +88,76 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
     public File testFolder;
 
     @Container
-    public static MySQLContainer MYSQL =
-            // MySQL 8 requires mysql-connector-java 8.x so we test against that.
-            // The mysql-connector-java 8.x also works with MySQL 5
-            new MySQLContainer("mysql:8.0.28")
-            .withUsername(dbUser)
-            .withPassword(dbPass)
-            .withDatabaseName(DB_NAME);
+    public static MySQLContainer<?> MYSQL = getMySQLContainer();
+
+    public static MySQLContainer<?> getMySQLContainer() {
+        // MySQL 8 requires mysql-connector-java 8.x so we test against that.
+        // The mysql-connector-java 8.x also works with MySQL 5
+        return new MySQLContainer<>("mysql:8.0.28")
+                .withUsername(dbUser)
+                .withPassword(dbPass)
+                .withDatabaseName(DB_NAME);
+    }
+
+    public static PostgreSQLContainer<?> getPostgreSQLContainer() {
+        // 15.1 is the latest postgres image at the time of writing this.
+        // The jdbc module versioning (42.2.23 in pom) doesn't seem to follow postgres image versioning.
+        return new PostgreSQLContainer<>("postgres:15.1")
+                .withUsername(dbUser)
+                .withPassword(dbPass)
+                .withDatabaseName(DB_NAME);
+    }
 
     @BeforeAll
     public static void beforeClass() throws Exception {
-        prepareDatabase();
+        prepareDatabase(MYSQL);
     }
 
-    public static void prepareDatabase() throws IOException, SQLException {
-        connectionString =  MYSQL.getJdbcUrl();
-        if (!connectionString.contains("useSSL=")) {
-            String separator = connectionString.contains("?") ? "&" : "?";
-            connectionString = connectionString + separator + "useSSL=false";
+    public static void prepareDatabase(JdbcDatabaseContainer<?> jdbc) throws SQLException {
+        if (jdbc instanceof MySQLContainer) {
+            // Druid requires its MySQL database to be created with an UTF8 charset.
+            runSql(jdbc, String.format("ALTER DATABASE %s CHARACTER SET utf8mb4", DB_NAME));
+            // Could use sqlConnector.createSegmentTable() instead
+            runSql(jdbc, String.format("CREATE TABLE %1$s (\n"
+                            + "  id VARCHAR(255) NOT NULL,\n"
+                            + "  dataSource VARCHAR(255) NOT NULL,\n"
+                            + "  created_date VARCHAR(255) NOT NULL,\n"
+                            + "  start VARCHAR(255) NOT NULL,\n"
+                            + "  `end` VARCHAR(255) NOT NULL,\n"
+                            + "  partitioned BOOLEAN NOT NULL,\n"
+                            + "  version VARCHAR(255) NOT NULL,\n"
+                            + "  used BOOLEAN NOT NULL,\n"
+                            + "  payload BLOB NOT NULL,\n"
+                            + "  PRIMARY KEY (id)\n"
+                            + ")",
+                    segmentsTable));
+        } else {
+            // Could use sqlConnector.createSegmentTable() instead
+            runSql(jdbc, String.format("CREATE TABLE %1$s (\n"
+                            + "  id VARCHAR(255) NOT NULL,\n"
+                            + "  dataSource VARCHAR(255) NOT NULL,\n"
+                            + "  created_date VARCHAR(255) NOT NULL,\n"
+                            + "  start VARCHAR(255) NOT NULL,\n"
+                            + "  \"end\" VARCHAR(255) NOT NULL,\n"
+                            + "  partitioned BOOLEAN NOT NULL,\n"
+                            + "  version VARCHAR(255) NOT NULL,\n"
+                            + "  used BOOLEAN NOT NULL,\n"
+                            + "  payload BYTEA NOT NULL,\n"
+                            + "  PRIMARY KEY (id)\n"
+                            + ")",
+                    segmentsTable));
         }
-        // Druid requires its MySQL database to be created with an UTF8 charset.
-        runSql(String.format("ALTER DATABASE %s CHARACTER SET utf8mb4", DB_NAME));
-        runSql(String.format("CREATE TABLE %1$s (\n"
-                        + "  id VARCHAR(255) NOT NULL,\n"
-                        + "  dataSource VARCHAR(255) NOT NULL,\n"
-                        + "  created_date VARCHAR(255) NOT NULL,\n"
-                        + "  start VARCHAR(255) NOT NULL,\n"
-                        + "  `end` VARCHAR(255) NOT NULL,\n"
-                        + "  partitioned BOOLEAN NOT NULL,\n"
-                        + "  version VARCHAR(255) NOT NULL,\n"
-                        + "  used BOOLEAN NOT NULL,\n"
-                        + "  payload BLOB NOT NULL,\n"
-                        + "  PRIMARY KEY (id)\n"
-                        + ")",
-                segmentsTable));
+    }
+
+    public static String getConnectionString(JdbcDatabaseContainer<?> jdbc) {
+        String connectionString = jdbc.getJdbcUrl();
+        if (jdbc instanceof MySQLContainer) {
+            if (!connectionString.contains("useSSL=")) {
+                String separator = connectionString.contains("?") ? "&" : "?";
+                connectionString = connectionString + separator + "useSSL=false";
+            }
+        }
+        return connectionString;
     }
 
     @BeforeEach
@@ -135,16 +169,8 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
         // This is for some udf-level unit-testing. JVM API users don't need to register this udf.
         spark.udf().register("normalizeTimeColumn", new NormalizeTimeColumnUDF(), DataTypes.LongType);
 
-        // create Data source options
-        options = new HashMap<>();
-        options.put(ConfKeys.DATA_SOURCE, DATA_SOURCE);
-        options.put(ConfKeys.TIME_COLUMN, "date");
+        options = getDataSourceOptions(MYSQL);
         options.put(ConfKeys.DEEP_STORAGE_LOCAL_DIRECTORY, testFolder.toString());
-        options.put(ConfKeys.METADATA_DB_TYPE, dbType);
-        options.put(ConfKeys.METADATA_DB_URI, connectionString);
-        options.put(ConfKeys.METADATA_DB_USERNAME, dbUser);
-        options.put(ConfKeys.METADATA_DB_PASSWORD, dbPass);
-        options.put(ConfKeys.DEEP_STORAGE_TYPE, "local");
 
         // note: these are ignored when DEEP_STORAGE_TYPE = local
         options.put(ConfKeys.DEEP_STORAGE_S3_BUCKET, "my-bucket");
@@ -154,13 +180,25 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
         EmittingLogger.registerEmitter(Mockito.mock(ServiceEmitter.class));
     }
 
-    @BeforeEach
-    public void setUp() throws SQLException {
-        setUpDb();
+    public static Map<String, String> getDataSourceOptions(JdbcDatabaseContainer<?> jdbc) {
+        Map<String, String> options = new HashMap<>();
+        options.put(ConfKeys.DATA_SOURCE, DATA_SOURCE);
+        options.put(ConfKeys.METADATA_DB_TYPE, jdbc instanceof MySQLContainer ? "mysql" : "postgres");
+        options.put(ConfKeys.METADATA_DB_URI, getConnectionString(jdbc));
+        options.put(ConfKeys.METADATA_DB_USERNAME, dbUser);
+        options.put(ConfKeys.METADATA_DB_PASSWORD, dbPass);
+        options.put(ConfKeys.TIME_COLUMN, "date");
+        options.put(ConfKeys.DEEP_STORAGE_TYPE, "local");
+        return options;
     }
 
-    public static void setUpDb() throws SQLException {
-        runSql("TRUNCATE TABLE " + segmentsTable);
+    @BeforeEach
+    public void setUp() throws SQLException {
+        setUpDb(MYSQL);
+    }
+
+    public static void setUpDb(JdbcDatabaseContainer<?> jdbc) throws SQLException {
+        runSql(jdbc, "TRUNCATE TABLE " + segmentsTable);
     }
 
     @AfterEach
@@ -168,8 +206,8 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
         DateTimeUtils.setCurrentMillisSystem();
     }
 
-    private static void runSql(String sql) throws SQLException {
-        try (Connection connection = MYSQL.createConnection("");
+    private static void runSql(JdbcDatabaseContainer<?> jdbc, String sql) throws SQLException {
+        try (Connection connection = jdbc.createConnection("");
              Statement statement  = connection.createStatement()) {
             statement.executeUpdate(sql);
         }
@@ -209,7 +247,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
                 " and used = :used";
 
         long rowCount = (long) DBI
-                .open(connectionString, dbUser, dbPass)
+                .open(getConnectionString(MYSQL), dbUser, dbPass)
                 .createQuery(String.format(sql, segmentsTable))
                 .bind("dataSource", DATA_SOURCE)
                 .bind("start", interval.getStart().toString())

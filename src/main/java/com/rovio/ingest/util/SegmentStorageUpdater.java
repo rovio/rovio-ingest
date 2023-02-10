@@ -24,7 +24,12 @@ import org.apache.druid.segment.loading.DataSegmentPusher;
 import org.apache.druid.segment.loading.LocalDataSegmentKiller;
 import org.apache.druid.segment.loading.LocalDataSegmentPusher;
 import org.apache.druid.segment.loading.LocalDataSegmentPusherConfig;
-import org.apache.druid.storage.s3.*;
+import org.apache.druid.storage.s3.NoopServerSideEncryption;
+import org.apache.druid.storage.s3.S3DataSegmentKiller;
+import org.apache.druid.storage.s3.S3DataSegmentPusher;
+import org.apache.druid.storage.s3.S3DataSegmentPusherConfig;
+import org.apache.druid.storage.s3.S3InputDataConfig;
+import org.apache.druid.storage.s3.ServerSideEncryptingAmazonS3;
 
 import java.io.File;
 
