@@ -145,7 +145,7 @@ public class SegmentSpecTest {
         assertEquals(2, dimensions.size());
         List<String> expected = Arrays.asList("country", "city");
         assertTrue(dimensions.stream().allMatch(d -> expected.contains(d.getName())));
-        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getValueType()));
+        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getColumnType().getType()));
 
         assertTrue(spec.getDataSchema().getGranularitySpec().isRollup());
 
@@ -190,7 +190,7 @@ public class SegmentSpecTest {
         assertEquals(2, dimensions.size());
         List<String> expected = Arrays.asList("country", "city");
         assertTrue(dimensions.stream().allMatch(d -> expected.contains(d.getName())));
-        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getValueType()));
+        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getColumnType().getType()));
 
         assertTrue(spec.getDataSchema().getGranularitySpec().isRollup());
         assertEquals(Granularity.fromString("DAY"), spec.getDataSchema().getGranularitySpec().getSegmentGranularity());
@@ -218,7 +218,7 @@ public class SegmentSpecTest {
         assertEquals(2, dimensions.size());
         List<String> expected = Arrays.asList("country", "city");
         assertTrue(dimensions.stream().allMatch(d -> expected.contains(d.getName())));
-        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getValueType()));
+        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getColumnType().getType()));
 
         assertTrue(spec.getDataSchema().getGranularitySpec().isRollup());
 
@@ -247,7 +247,7 @@ public class SegmentSpecTest {
         assertEquals(2, dimensions.size());
         List<String> expected = Arrays.asList("country", "city");
         assertTrue(dimensions.stream().allMatch(d -> expected.contains(d.getName())));
-        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getValueType()));
+        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getColumnType().getType()));
 
         assertFalse(spec.getDataSchema().getGranularitySpec().isRollup());
 
@@ -317,7 +317,7 @@ public class SegmentSpecTest {
         assertEquals(2, dimensions.size());
         List<String> expected = Arrays.asList("country", "city");
         assertTrue(dimensions.stream().allMatch(d -> expected.contains(d.getName())));
-        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getValueType()));
+        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getColumnType().getType()));
 
         assertTrue(spec.getDataSchema().getGranularitySpec().isRollup());
 

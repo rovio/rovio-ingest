@@ -25,6 +25,7 @@ import org.apache.druid.data.input.Committer;
 import org.apache.druid.data.input.InputRow;
 import org.apache.druid.data.input.MapBasedInputRow;
 import org.apache.druid.java.util.common.DateTimes;
+import org.apache.druid.java.util.common.FileUtils;
 import org.apache.druid.segment.IndexIO;
 import org.apache.druid.segment.IndexMerger;
 import org.apache.druid.segment.IndexMergerV9;
@@ -66,7 +67,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
@@ -86,6 +86,7 @@ class TaskDataWriter implements DataWriter<InternalRow> {
     private final DataSegmentKiller segmentKiller;
     private final Supplier<Committer> committerSupplier;
     private final Set<DataSegment> pushedSegments;
+    private final File basePersistDirectory;
 
     private SegmentIdWithShardSpec current;
 
@@ -96,7 +97,11 @@ class TaskDataWriter implements DataWriter<InternalRow> {
         this.dataSchema = segmentSpec.getDataSchema();
         this.tuningConfig = getTuningConfig(context);
         DataSegmentPusher segmentPusher = SegmentStorageUpdater.createPusher(context);
-        File basePersistDirectory = new File(tuningConfig.getBasePersistDirectory(), UUID.randomUUID().toString());
+        // Similar code for creating a basePersistDirectory was removed in https://github.com/apache/druid/pull/13040
+        // with a mention that basePersistDirectory "is always overridden in production using withBasePersistDirectory given some subdirectory of the task work directory".
+        // Creating a temp folder manually here, as appenderator.startJob() requires it, but there doesn't seem to be an easy way to get it provided at this point(?).
+        // To clean up, this dir is deleted in #close
+        this.basePersistDirectory = FileUtils.createTempDir("rovio-ingest-persist-");
         this.segmentKiller = SegmentStorageUpdater.createKiller(context);
         this.appenderator = new DefaultOfflineAppenderatorFactory(segmentPusher, MAPPER, INDEX_IO, INDEX_MERGER_V_9)
                 .build(dataSchema, tuningConfig.withBasePersistDirectory(basePersistDirectory), new FireDepartmentMetrics());
@@ -105,7 +110,7 @@ class TaskDataWriter implements DataWriter<InternalRow> {
         this.appenderator.startJob();
 
         try {
-            ReflectionUtils.setStaticFieldValue(NullHandling.class, "INSTANCE", new NullValueHandlingConfig(context.isUseDefaultValueForNull()));
+            ReflectionUtils.setStaticFieldValue(NullHandling.class, "INSTANCE", new NullValueHandlingConfig(context.isUseDefaultValueForNull(), null));
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new IllegalStateException("Unable to set null handling!!", e);
         }
@@ -282,6 +287,8 @@ class TaskDataWriter implements DataWriter<InternalRow> {
 
     @Override
     public void close() throws IOException {
-
+        if (this.basePersistDirectory != null) {
+            FileUtils.deleteDirectory(basePersistDirectory);
+        }
     }
 }
