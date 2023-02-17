@@ -339,10 +339,9 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 | `druid.bitmap_factory` | Compression format for bitmap indexes. Possible values: `concise`, `roaring`. For type `roaring`, the boolean property compressRunOnSerialization is always set to `true`. `rovio-ingest` uses `concise` by default regardless of Druid library version. | `concise` |
 | `druid.segment.rollup` | Whether to rollup data during ingestion | `true` |
 | `druid.segment.rollup` | Whether to rollup data during ingestion. Enabling this requires that there be at least one numeric input column. | `true` |
-| `druid.metrics.auto_map` | Whether to automatically map all numeric columns as metrics or not. If `false` numeric columns will be added as dimensions | `true` |
 | `druid.use_default_values_for_null` | Whether use default values for nulls. See [Null Values](https://druid.apache.org/docs/latest/querying/sql.html#null-values) for details | `true` |
 | `druid.dimensions_spec` | List of dimensions provided as json string, when not provided defaults to all non metric/non time_column fields. See [DimensionsSpec](https://druid.apache.org/docs/latest/ingestion/index.html#dimensionsspec) for details | |
-| `druid.metrics_spec` | List of metrics aggregation provided as json string, when not provided defaults to either no metrics or to using sum aggregator for all numeric columns depending on the value of the `druid.metrics.auto_map` property. See [MetricsSpec](https://druid.apache.org/docs/latest/ingestion/index.html#metricsspec) for details | |
+| `druid.metrics_spec` | List of aggregators to apply at ingestion time as a json array string. Possible aggregators: [metricsSpec in Druid Docs](https://druid.apache.org/docs/latest/ingestion/ingestion-spec.html#metricsspec). When not provided, defaults to using `longSum` or `doubleSum` for all numeric columns. See also: [No-Code wrapper script](#no-code-wrapper-script). | |
 | `druid.transform_spec` | List of transformations provided as json string, when not provided defaults to no transformations. See [TransformSpec](https://druid.apache.org/docs/latest/ingestion/index.html#transformspec) for details | |
 
 ## Limitations

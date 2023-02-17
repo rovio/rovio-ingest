@@ -43,7 +43,7 @@ public class SegmentSpecTest {
     @Test
     public void shouldThrowErrorForMissingDataSource() {
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", new StructType(), true, true, null));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", new StructType(), true, null));
     }
 
     @Test
@@ -52,7 +52,7 @@ public class SegmentSpecTest {
                 .add("country", DataTypes.StringType)
                 .add("metric1", DataTypes.LongType);
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, true, null));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null));
     }
 
     @Test
@@ -65,7 +65,7 @@ public class SegmentSpecTest {
                 .add("metric1", DataTypes.LongType)
                 .add("metric2", DataTypes.DoubleType);
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, true, null));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null));
     }
 
     @Test
@@ -74,7 +74,7 @@ public class SegmentSpecTest {
                 .add("__time", DataTypes.TimestampType)
                 .add("country", DataTypes.StringType);
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, true, null));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null));
     }
 
     @Test
@@ -82,7 +82,7 @@ public class SegmentSpecTest {
         StructType schema = new StructType()
                 .add("__time", DataTypes.TimestampType)
                 .add("country", DataTypes.StringType);
-        assertDoesNotThrow(() -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, false, false, null));
+        assertDoesNotThrow(() -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, false, null));
     }
 
     @Test
@@ -91,7 +91,7 @@ public class SegmentSpecTest {
                 .add("__time", DataTypes.TimestampType)
                 .add("metric", DataTypes.LongType);
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, true, null));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null));
     }
 
     @Test
@@ -99,7 +99,7 @@ public class SegmentSpecTest {
         StructType schema = new StructType()
                 .add("city", DataTypes.CalendarIntervalType);
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, true, null));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null));
     }
 
     @Test
@@ -107,7 +107,7 @@ public class SegmentSpecTest {
         StructType schema = new StructType()
                 .add("complex", new StructType().add("id", DataTypes.StringType));
         assertThrows(IllegalArgumentException.class,
-                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, true, null));
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null));
     }
 
     @Test
@@ -132,7 +132,7 @@ public class SegmentSpecTest {
                 "   \"expression\": null\n" +
                 "}\n" +
             "]";
-        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, true, metricsSpec);
+        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, metricsSpec);
 
         assertEquals("temp", spec.getDataSchema().getDataSource());
         assertEquals("__time", spec.getTimeColumn());
@@ -177,7 +177,7 @@ public class SegmentSpecTest {
                 "}\n" +
                 "]";
 
-        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.singletonList("updateTime"), "DAY", "DAY", schema, true, true, metricsSpec);
+        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.singletonList("updateTime"), "DAY", "DAY", schema, true, metricsSpec);
 
         assertEquals("temp", spec.getDataSchema().getDataSource());
         assertEquals("__time", spec.getTimeColumn());
@@ -205,7 +205,7 @@ public class SegmentSpecTest {
                 .add("city", DataTypes.StringType)
                 .add("metric1", DataTypes.LongType)
                 .add("metric2", DataTypes.DoubleType);
-        SegmentSpec spec = SegmentSpec.from("temp", "updateTime",  Collections.emptyList(), "DAY", "DAY", schema, true, true, null);
+        SegmentSpec spec = SegmentSpec.from("temp", "updateTime",  Collections.emptyList(), "DAY", "DAY", schema, true, null);
 
         assertEquals("temp", spec.getDataSchema().getDataSource());
         assertEquals("updateTime", spec.getTimeColumn());
@@ -234,7 +234,7 @@ public class SegmentSpecTest {
                 .add("city", DataTypes.StringType)
                 .add("metric1", DataTypes.LongType)
                 .add("metric2", DataTypes.DoubleType);
-        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, false, null);
+        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, false, null);
 
         assertEquals("temp", spec.getDataSchema().getDataSource());
         assertEquals("__time", spec.getTimeColumn());
@@ -263,7 +263,7 @@ public class SegmentSpecTest {
                 .add("city", DataTypes.StringType)
                 .add("metric1", DataTypes.LongType)
                 .add("metric2", DataTypes.DoubleType);
-        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, true, "{}");
+        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, "{}");
         assertThrows(IllegalArgumentException.class,
                 spec::getDataSchema);
     }
@@ -302,7 +302,7 @@ public class SegmentSpecTest {
                     "   \"expression\": null\n" +
                     "}" +
                 "]";
-        SegmentSpec spec = SegmentSpec.from("temp", "updateTime",  Collections.emptyList(), "DAY", "DAY", schema, true, true, metricsSpec);
+        SegmentSpec spec = SegmentSpec.from("temp", "updateTime",  Collections.emptyList(), "DAY", "DAY", schema, true, metricsSpec);
 
         assertEquals("temp", spec.getDataSchema().getDataSource());
         assertEquals("updateTime", spec.getTimeColumn());

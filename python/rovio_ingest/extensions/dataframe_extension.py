@@ -35,7 +35,6 @@ class ConfKeys:
     EXCLUDED_DIMENSIONS = "druid.exclude_dimensions"
     SEGMENT_MAX_ROWS = "druid.segment.max_rows"
     SEGMENT_ROLLUP = "druid.segment.rollup"
-    AUTO_MAP_METRICS = "druid.metrics.auto_map"
     USE_DEFAULT_VALUES_FOR_NULL = "druid.use_default_values_for_null"
     # Metadata config
     METADATA_DB_TYPE = "druid.metastore.db.type"

@@ -58,13 +58,12 @@ public class SegmentSpec implements Serializable {
     private final Field partitionTime;
     private final Field partitionNum;
     private final boolean rollup;
-    private final boolean autoMapMetrics;
     private final String dimensionsSpec;
     private final String metricsSpec;
     private final String transformSpec;
 
     private SegmentSpec(String dataSource, String timeColumn, String segmentGranularity, String queryGranularity,
-                        List<Field> fields, Field partitionTime, Field partitionNum, boolean rollup, boolean autoMapMetrics,
+                        List<Field> fields, Field partitionTime, Field partitionNum, boolean rollup,
                         String dimensionsSpec, String metricsSpec, String transformSpec) {
         this.dataSource = dataSource;
         this.timeColumn = timeColumn;
@@ -74,20 +73,19 @@ public class SegmentSpec implements Serializable {
         this.partitionTime = partitionTime;
         this.partitionNum = partitionNum;
         this.rollup = rollup;
-        this.autoMapMetrics = autoMapMetrics;
         this.dimensionsSpec = dimensionsSpec;
         this.metricsSpec = metricsSpec;
         this.transformSpec = transformSpec;
     }
 
     public static SegmentSpec from(String datasource, String timeColumn, List<String> excludedDimensions,
-            String segmentGranularity, String queryGranularity, StructType schema, boolean autoMapMetrics, boolean rollup, String metricsSpec) {
-        return from(datasource, timeColumn, excludedDimensions, segmentGranularity, queryGranularity, schema, rollup, autoMapMetrics, null, metricsSpec, null);
+            String segmentGranularity, String queryGranularity, StructType schema, boolean rollup, String metricsSpec) {
+        return from(datasource, timeColumn, excludedDimensions, segmentGranularity, queryGranularity, schema, rollup, null, metricsSpec, null);
     }
 
     public static SegmentSpec from(String datasource, String timeColumn, List<String> excludedDimensions,
                                    String segmentGranularity, String queryGranularity, StructType schema, boolean rollup,
-                                   boolean autoMapMetrics, String dimensionsSpec, String metricsSpec, String transformSpec) {
+                                   String dimensionsSpec, String metricsSpec, String transformSpec) {
         Preconditions.checkNotNull(datasource);
         Preconditions.checkNotNull(timeColumn);
         Preconditions.checkNotNull(excludedDimensions);
@@ -133,12 +131,7 @@ public class SegmentSpec implements Serializable {
                     String.format("Field with name \"%s\" should be long/int type, current type is %s", PARTITION_NUM_COLUMN_NAME, partitionNum.getFieldType().name()));
         }
 
-        if (StringUtils.isNotBlank(metricsSpec) && autoMapMetrics) {
-            // ignore automap if we've been provided a metrics spec
-            autoMapMetrics = false;
-        }
-
-        return new SegmentSpec(datasource, timeColumn, segmentGranularity, queryGranularity, fields, partitionTime, partitionNum, rollup, autoMapMetrics, dimensionsSpec, metricsSpec, transformSpec);
+        return new SegmentSpec(datasource, timeColumn, segmentGranularity, queryGranularity, fields, partitionTime, partitionNum, rollup, dimensionsSpec, metricsSpec, transformSpec);
     }
 
     public String getTimeColumn() {
@@ -211,8 +204,6 @@ public class SegmentSpec implements Serializable {
                 } else if (field.getFieldType() == FieldType.DOUBLE) {
                     builder.add(new DoubleDimensionSchema(fieldName));
                 } else if (field.getFieldType() == FieldType.TIMESTAMP) {
-                    // TODO is this branch ever possible? There's a precondition against FieldType.TIMESTAMP and
-                    //  DruidDatasetExtensions converts TimestampType & DateType to StringType.
                     builder.add(new LongDimensionSchema(fieldName));
                 }
             }
@@ -248,7 +239,7 @@ public class SegmentSpec implements Serializable {
             } catch (JsonProcessingException e) {
                 throw new IllegalArgumentException(String.format("Failed to deserialize from metricsSpec=%s", metricsSpec), e);
             }
-        } else if (autoMapMetrics) {
+        } else {
             for (Field field : fields) {
                 String fieldName = field.getName();
                 FieldType dataFieldType = field.getFieldType();
