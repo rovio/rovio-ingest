@@ -35,6 +35,7 @@ public class RovioIngestSampleJob {
 
         options.put(ConfKeys.DATA_SOURCE, "target-datasource-name-in-druid");
         options.put(ConfKeys.TIME_COLUMN, "date");
+        //options.put(ConfKeys.METADATA_DB_TYPE, "mysql");
         options.put(ConfKeys.METADATA_DB_URI, "jdbc:mysql://localhost:3306/druid");
         options.put(ConfKeys.METADATA_DB_USERNAME, "username");
         options.put(ConfKeys.METADATA_DB_PASSWORD, "password");

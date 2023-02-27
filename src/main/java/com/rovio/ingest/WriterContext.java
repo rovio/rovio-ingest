@@ -30,6 +30,7 @@ public class WriterContext implements Serializable {
     // Default values
     private static final String DEFAULT_QUERY_GRANULARITY = "DAY";
     private static final String DEFAULT_DRUID_METADATA_DB_TABLE_BASE = "druid";
+    private static final String DEFAULT_DRUID_METADATA_DB_TYPE = "mysql";
     private static final int DEFAULT_MAX_ROWS_PER_SEGMENT = 5_000_000;
     private static final String DEFAULT_SEGMENT_GRANULARITY = "DAY";
     private static final int DEFAULT_MAX_ROWS_IN_MEMORY = 75000;
@@ -45,18 +46,23 @@ public class WriterContext implements Serializable {
     private final List<String> excludedDimensions;
     private final int segmentMaxRows;
     private final int maxRowsInMemory;
+    private final String metadataDbType;
     private final String metadataDbUri;
     private final String metadataDbUser;
     private final String metadataDbPass;
     private final String metadataDbTableBase;
     private final String s3Bucket;
     private final String s3BaseKey;
+    private final boolean s3DisableAcl;
     private final String localDir;
     private final String deepStorageType;
     private final boolean initDataSource;
     private final String version;
     private final boolean rollup;
+    private final boolean useDefaultValueForNull;
+    private final String dimensionsSpec;
     private final String metricsSpec;
+    private final String transformSpec;
 
     private WriterContext(CaseInsensitiveStringMap options, String version) {
         this.dataSource = getOrThrow(options, ConfKeys.DATA_SOURCE);
@@ -79,6 +85,7 @@ public class WriterContext implements Serializable {
         }
         this.maxRowsInMemory = maxRowsInMemory;
 
+        this.metadataDbType = options.getOrDefault(ConfKeys.METADATA_DB_TYPE, DEFAULT_DRUID_METADATA_DB_TYPE);
         this.metadataDbUri = getOrThrow(options, ConfKeys.METADATA_DB_URI);
         this.metadataDbUser = getOrThrow(options, ConfKeys.METADATA_DB_USERNAME);
         this.metadataDbPass = getOrThrow(options, ConfKeys.METADATA_DB_PASSWORD);
@@ -86,6 +93,7 @@ public class WriterContext implements Serializable {
 
         this.s3Bucket = options.getOrDefault(ConfKeys.DEEP_STORAGE_S3_BUCKET, null);
         this.s3BaseKey = options.getOrDefault(ConfKeys.DEEP_STORAGE_S3_BASE_KEY, null);
+        this.s3DisableAcl = options.getBoolean(ConfKeys.DEEP_STORAGE_S3_DISABLE_ACL, false);
         this.localDir = options.getOrDefault(ConfKeys.DEEP_STORAGE_LOCAL_DIRECTORY, null);
 
         this.deepStorageType = options.getOrDefault(ConfKeys.DEEP_STORAGE_TYPE, DEFAULT_DRUID_DEEP_STORAGE_TYPE);
@@ -94,12 +102,15 @@ public class WriterContext implements Serializable {
 
         this.initDataSource = options.getBoolean(ConfKeys.DATASOURCE_INIT, false);
         this.rollup = options.getBoolean(ConfKeys.SEGMENT_ROLLUP, true);
+        this.useDefaultValueForNull = options.getBoolean(ConfKeys.USE_DEFAULT_VALUES_FOR_NULL, true);
+        this.dimensionsSpec = options.getOrDefault(ConfKeys.DIMENSIONS_SPEC, null);
         this.metricsSpec = options.getOrDefault(ConfKeys.METRICS_SPEC, null);
+        this.transformSpec = options.getOrDefault(ConfKeys.TRANSFORM_SPEC, null);
 
         this.version = version;
     }
 
-    static WriterContext from(CaseInsensitiveStringMap options, String version) {
+    public static WriterContext from(CaseInsensitiveStringMap options, String version) {
         return new WriterContext(options, version);
     }
 
@@ -143,6 +154,10 @@ public class WriterContext implements Serializable {
         return maxRowsInMemory;
     }
 
+    public String getMetadataDbType() {
+        return metadataDbType;
+    }
+
     public String getMetadataDbUri() {
         return metadataDbUri;
     }
@@ -165,6 +180,10 @@ public class WriterContext implements Serializable {
 
     public String getS3BaseKey() {
         return s3BaseKey;
+    }
+
+    public boolean isS3DisableAcl() {
+        return s3DisableAcl;
     }
 
     public String getLocalDir() {
@@ -191,8 +210,20 @@ public class WriterContext implements Serializable {
         return rollup;
     }
 
+    public boolean isUseDefaultValueForNull() {
+        return useDefaultValueForNull;
+    }
+
+    public String getDimensionsSpec() {
+        return dimensionsSpec;
+    }
+
     public String getMetricsSpec() {
         return metricsSpec;
+    }
+
+    public String getTransformSpec() {
+        return transformSpec;
     }
 
   public static class ConfKeys {
@@ -200,7 +231,9 @@ public class WriterContext implements Serializable {
         // Segment config
         public static final String DATA_SOURCE = "druid.datasource";
         public static final String TIME_COLUMN = "druid.time_column";
+        public static final String DIMENSIONS_SPEC = "druid.dimensions_spec";
         public static final String METRICS_SPEC = "druid.metrics_spec";
+        public static final String TRANSFORM_SPEC = "druid.transform_spec";
         public static final String SEGMENT_GRANULARITY = "druid.segment_granularity";
         public static final String QUERY_GRANULARITY = "druid.query_granularity";
         public static final String BITMAP_FACTORY = "druid.bitmap_factory";
@@ -208,7 +241,9 @@ public class WriterContext implements Serializable {
         public static final String SEGMENT_MAX_ROWS = "druid.segment.max_rows";
         public static final String MAX_ROWS_IN_MEMORY = "druid.memory.max_rows";
         public static final String SEGMENT_ROLLUP = "druid.segment.rollup";
+        public static final String USE_DEFAULT_VALUES_FOR_NULL = "druid.use_default_values_for_null";
         // Metadata config
+        public static final String METADATA_DB_TYPE = "druid.metastore.db.type";
         public static final String METADATA_DB_URI = "druid.metastore.db.uri";
         public static final String METADATA_DB_USERNAME = "druid.metastore.db.username";
         public static final String METADATA_DB_PASSWORD = "druid.metastore.db.password";
@@ -218,6 +253,7 @@ public class WriterContext implements Serializable {
         // S3 config
         public static final String DEEP_STORAGE_S3_BUCKET = "druid.segment_storage.s3.bucket";
         public static final String DEEP_STORAGE_S3_BASE_KEY = "druid.segment_storage.s3.basekey";
+        public static final String DEEP_STORAGE_S3_DISABLE_ACL = "druid.segment_storage.s3.disableacl";
         // Local config (only for testing)
         public static final String DEEP_STORAGE_LOCAL_DIRECTORY = "druid.segment_storage.local.dir";
     }

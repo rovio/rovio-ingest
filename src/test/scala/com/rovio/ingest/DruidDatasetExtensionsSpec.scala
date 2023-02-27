@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2021 Rovio Entertainment Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@ package com.rovio.ingest
 
 import org.scalatest._
 import com.rovio.ingest.WriterContext.ConfKeys
+import com.rovio.ingest.model.DbType
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Dataset, SaveMode, SparkSession}
 import org.junit.runner.RunWith
@@ -34,7 +35,7 @@ class DruidDatasetExtensionsSpec extends FlatSpec with Matchers with BeforeAndAf
 
   before {
     DruidSourceBaseTest.MYSQL.start()
-    DruidSourceBaseTest.prepareDatabase()
+    DruidSourceBaseTest.prepareDatabase(DruidSourceBaseTest.MYSQL)
   }
 
   after {
@@ -76,7 +77,7 @@ class DruidDatasetExtensionsSpec extends FlatSpec with Matchers with BeforeAndAf
     ).toDS
       .withColumn("date", 'date.cast(DataTypes.TimestampType))
       // note how we can call .repartitionByDruidSegmentSize directly on Dataset[Row]
-      // the nice thing is this allows continuous method chaining on Dataset without braking the chain
+      // the nice thing is this allows continuous method chaining on Dataset without breaking the chain
       .repartitionByDruidSegmentSize("date", "DAY", 2)
       // group & count
       // because we can't know which exact rows end up in each partition within the same date
@@ -108,7 +109,7 @@ class DruidDatasetExtensionsSpec extends FlatSpec with Matchers with BeforeAndAf
     ).toDS
       .withColumn("date", 'date.cast(DataTypes.TimestampType))
       // note how we can call .repartitionByDruidSegmentSize directly on Dataset[Row]
-      // the nice thing is this allows continuous method chaining on Dataset without braking the chain
+      // the nice thing is this allows continuous method chaining on Dataset without breaking the chain
       .repartitionByDruidSegmentSize("date", "WEEK", 4)
       // group & count
       // because we can't know which exact rows end up in each partition within the same date
@@ -138,7 +139,7 @@ class DruidDatasetExtensionsSpec extends FlatSpec with Matchers with BeforeAndAf
     ).toDS
       .withColumn("date", 'date.cast(DataTypes.TimestampType))
       // note how we can call .repartitionByDruidSegmentSize directly on Dataset[Row]
-      // the nice thing is this allows continuous method chaining on Dataset without braking the chain
+      // the nice thing is this allows continuous method chaining on Dataset without breaking the chain
       .repartitionByDruidSegmentSize("date", "HOUR", 2)
       // group & count
       // because we can't know which exact rows end up in each partition within the same date
@@ -243,12 +244,13 @@ class DruidDatasetExtensionsSpec extends FlatSpec with Matchers with BeforeAndAf
 
   it should "save the dataset to druid" in {
 
-    DruidSourceBaseTest.setUpDb()
+    DruidSourceBaseTest.setUpDb(DruidSourceBaseTest.MYSQL)
 
     // create Data source options
     val options = Map[String, String](
       ConfKeys.DEEP_STORAGE_LOCAL_DIRECTORY -> "/tmp/local_segments",
-      ConfKeys.METADATA_DB_URI -> DruidSourceBaseTest.connectionString,
+      ConfKeys.METADATA_DB_TYPE -> DbType.Mysql.name(),
+      ConfKeys.METADATA_DB_URI -> DruidSourceBaseTest.getConnectionString(DruidSourceBaseTest.MYSQL),
       ConfKeys.METADATA_DB_USERNAME -> DruidSourceBaseTest.dbUser,
       ConfKeys.METADATA_DB_PASSWORD -> DruidSourceBaseTest.dbPass,
       ConfKeys.DEEP_STORAGE_TYPE -> "local",
@@ -271,7 +273,7 @@ class DruidDatasetExtensionsSpec extends FlatSpec with Matchers with BeforeAndAf
       .withColumn("date", 'date.cast(DataTypes.TimestampType))
 
     // note how we can call .repartitionByDruidSegmentSize directly on Dataset[Row]
-    // the nice thing is this allows continuous method chaining on Dataset without braking the chain
+    // the nice thing is this allows continuous method chaining on Dataset without breaking the chain
     ds.repartitionByDruidSegmentSize("date", rowsPerSegment=2)
       .write
       .mode(SaveMode.Overwrite)

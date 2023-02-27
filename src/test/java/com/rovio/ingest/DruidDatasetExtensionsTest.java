@@ -39,8 +39,8 @@ import static com.rovio.ingest.WriterContext.ConfKeys.QUERY_GRANULARITY;
 import static com.rovio.ingest.WriterContext.ConfKeys.SEGMENT_GRANULARITY;
 import static org.apache.spark.sql.functions.column;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
@@ -325,8 +325,10 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
                 .put("__time", DateTime.parse("2019-10-16T00:01:00Z"))
                 .put("string_date_column", "2019-10-16 00:00:00")
                 .put("boolean_column", "true")
+                .put("double_column", "100.0")
                 .build();
         Map<String, Object> data = parsed.get(0, dimensions);
+        assertNotNull(data);
         assertEquals(10L, data.get("long_column"));
         assertNull(data.get("double_column"));
 
@@ -335,8 +337,10 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
                 .put("__time", DateTime.parse("2019-10-16T00:02:00Z"))
                 .put("string_date_column", "2019-10-16 00:00:00")
                 .put("boolean_column", "false")
+                .put("double_column", "-1.0")
                 .build();
         data = parsed.get(0, dimensions);
+        assertNotNull(data);
         assertEquals(-1L, data.get("long_column"));
         assertNull(data.get("double_column"));
     }

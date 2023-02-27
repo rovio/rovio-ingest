@@ -22,6 +22,7 @@ import org.apache.druid.query.aggregation.DoubleMinAggregatorFactory;
 import org.apache.druid.query.aggregation.DoubleSumAggregatorFactory;
 import org.apache.druid.query.aggregation.LongMaxAggregatorFactory;
 import org.apache.druid.query.aggregation.LongSumAggregatorFactory;
+import org.apache.druid.segment.column.ValueType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -67,12 +69,20 @@ public class SegmentSpecTest {
     }
 
     @Test
-    public void shouldFailForNoMetrics() {
+    public void shouldFailForNoMetricsWhenRollupEnabled() {
         StructType schema = new StructType()
                 .add("__time", DataTypes.TimestampType)
                 .add("country", DataTypes.StringType);
         assertThrows(IllegalArgumentException.class,
                 () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null));
+    }
+
+    @Test
+    public void shouldNotFailForNoMetricsWhenRollupDisabled() {
+        StructType schema = new StructType()
+                .add("__time", DataTypes.TimestampType)
+                .add("country", DataTypes.StringType);
+        assertDoesNotThrow(() -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, false, null));
     }
 
     @Test
@@ -108,7 +118,21 @@ public class SegmentSpecTest {
                 .add("city", DataTypes.StringType)
                 .add("metric1", DataTypes.LongType)
                 .add("metric2", DataTypes.DoubleType);
-        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, null);
+        String metricsSpec = "[" +
+                "{\n" +
+                "   \"type\": \"longSum\",\n" +
+                "   \"name\": \"metric1\",\n" +
+                "   \"fieldName\": \"metric1\",\n" +
+                "   \"expression\": null\n" +
+                "},\n" +
+                "{\n" +
+                "   \"type\": \"doubleSum\",\n" +
+                "   \"name\": \"metric2\",\n" +
+                "   \"fieldName\": \"metric2\",\n" +
+                "   \"expression\": null\n" +
+                "}\n" +
+            "]";
+        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, metricsSpec);
 
         assertEquals("temp", spec.getDataSchema().getDataSource());
         assertEquals("__time", spec.getTimeColumn());
@@ -117,11 +141,11 @@ public class SegmentSpecTest {
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof LongSumAggregatorFactory));
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof DoubleSumAggregatorFactory));
 
-        List<DimensionSchema> dimensions = spec.getDataSchema().getParser().getParseSpec().getDimensionsSpec().getDimensions();
+        List<DimensionSchema> dimensions = spec.getDataSchema().getDimensionsSpec().getDimensions();
         assertEquals(2, dimensions.size());
         List<String> expected = Arrays.asList("country", "city");
         assertTrue(dimensions.stream().allMatch(d -> expected.contains(d.getName())));
-        assertTrue(dimensions.stream().allMatch(d -> DimensionSchema.ValueType.STRING == d.getValueType()));
+        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getValueType()));
 
         assertTrue(spec.getDataSchema().getGranularitySpec().isRollup());
 
@@ -138,7 +162,22 @@ public class SegmentSpecTest {
                 .add("city", DataTypes.StringType)
                 .add("metric1", DataTypes.LongType)
                 .add("metric2", DataTypes.DoubleType);
-        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.singletonList("updateTime"), "DAY", "DAY", schema, true, null);
+        String metricsSpec = "[" +
+                "{\n" +
+                "   \"type\": \"longSum\",\n" +
+                "   \"name\": \"metric1\",\n" +
+                "   \"fieldName\": \"metric1\",\n" +
+                "   \"expression\": null\n" +
+                "},\n" +
+                "{\n" +
+                "   \"type\": \"doubleSum\",\n" +
+                "   \"name\": \"metric2\",\n" +
+                "   \"fieldName\": \"metric2\",\n" +
+                "   \"expression\": null\n" +
+                "}\n" +
+                "]";
+
+        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.singletonList("updateTime"), "DAY", "DAY", schema, true, metricsSpec);
 
         assertEquals("temp", spec.getDataSchema().getDataSource());
         assertEquals("__time", spec.getTimeColumn());
@@ -147,11 +186,11 @@ public class SegmentSpecTest {
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof LongSumAggregatorFactory));
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof DoubleSumAggregatorFactory));
 
-        List<DimensionSchema> dimensions = spec.getDataSchema().getParser().getParseSpec().getDimensionsSpec().getDimensions();
+        List<DimensionSchema> dimensions = spec.getDataSchema().getDimensionsSpec().getDimensions();
         assertEquals(2, dimensions.size());
         List<String> expected = Arrays.asList("country", "city");
         assertTrue(dimensions.stream().allMatch(d -> expected.contains(d.getName())));
-        assertTrue(dimensions.stream().allMatch(d -> DimensionSchema.ValueType.STRING == d.getValueType()));
+        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getValueType()));
 
         assertTrue(spec.getDataSchema().getGranularitySpec().isRollup());
         assertEquals(Granularity.fromString("DAY"), spec.getDataSchema().getGranularitySpec().getSegmentGranularity());
@@ -175,11 +214,11 @@ public class SegmentSpecTest {
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof LongSumAggregatorFactory));
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof DoubleSumAggregatorFactory));
 
-        List<DimensionSchema> dimensions = spec.getDataSchema().getParser().getParseSpec().getDimensionsSpec().getDimensions();
+        List<DimensionSchema> dimensions = spec.getDataSchema().getDimensionsSpec().getDimensions();
         assertEquals(2, dimensions.size());
         List<String> expected = Arrays.asList("country", "city");
         assertTrue(dimensions.stream().allMatch(d -> expected.contains(d.getName())));
-        assertTrue(dimensions.stream().allMatch(d -> DimensionSchema.ValueType.STRING == d.getValueType()));
+        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getValueType()));
 
         assertTrue(spec.getDataSchema().getGranularitySpec().isRollup());
 
@@ -204,11 +243,11 @@ public class SegmentSpecTest {
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof LongSumAggregatorFactory));
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof DoubleSumAggregatorFactory));
 
-        List<DimensionSchema> dimensions = spec.getDataSchema().getParser().getParseSpec().getDimensionsSpec().getDimensions();
+        List<DimensionSchema> dimensions = spec.getDataSchema().getDimensionsSpec().getDimensions();
         assertEquals(2, dimensions.size());
         List<String> expected = Arrays.asList("country", "city");
         assertTrue(dimensions.stream().allMatch(d -> expected.contains(d.getName())));
-        assertTrue(dimensions.stream().allMatch(d -> DimensionSchema.ValueType.STRING == d.getValueType()));
+        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getValueType()));
 
         assertFalse(spec.getDataSchema().getGranularitySpec().isRollup());
 
@@ -274,11 +313,11 @@ public class SegmentSpecTest {
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof LongMaxAggregatorFactory && f.getName().equals("metric1_max") && Objects.equals(((LongMaxAggregatorFactory) f).getFieldName(), "metric1")));
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof DoubleMinAggregatorFactory && f.getName().equals("metric2_min") && Objects.equals(((DoubleMinAggregatorFactory) f).getFieldName(), "metric2")));
 
-        List<DimensionSchema> dimensions = spec.getDataSchema().getParser().getParseSpec().getDimensionsSpec().getDimensions();
+        List<DimensionSchema> dimensions = spec.getDataSchema().getDimensionsSpec().getDimensions();
         assertEquals(2, dimensions.size());
         List<String> expected = Arrays.asList("country", "city");
         assertTrue(dimensions.stream().allMatch(d -> expected.contains(d.getName())));
-        assertTrue(dimensions.stream().allMatch(d -> DimensionSchema.ValueType.STRING == d.getValueType()));
+        assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getValueType()));
 
         assertTrue(spec.getDataSchema().getGranularitySpec().isRollup());
 
