@@ -364,6 +364,13 @@
                                         <include>com.google.common.**</include>
                                     </includes>
                                 </relocation>
+                                <relocation>
+                                    <pattern>org</pattern>
+                                    <shadedPattern>repackaged.org.roaringbitmap</shadedPattern>
+                                    <includes>
+                                        <include>org.roaringbitmap.**</include>
+                                    </includes>
+                                </relocation>
                             </relocations>
                         </configuration>
                     </execution>
