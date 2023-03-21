@@ -32,7 +32,6 @@ import org.apache.druid.segment.QueryableIndexStorageAdapter;
 import org.apache.druid.segment.realtime.firehose.IngestSegmentFirehose;
 import org.apache.druid.segment.realtime.firehose.WindowedStorageAdapter;
 import org.apache.druid.segment.transform.TransformSpec;
-import org.apache.druid.utils.CompressionUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -268,8 +267,8 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
         for (DateTime current = interval.getStart(); current.isBefore(interval.getEnd()); current = isMonth ? current.plusMonths(1) : current.plusDays(1)) {
             String relativePath = current + "_" + (isMonth ? current.plusMonths(1) : current.plusDays(1));
             for (int i = 0; i < numShards; i++) {
-                Path zipPath = Paths.get(root.toString(), relativePath, version, String.valueOf(i), "index.zip");
-                ImmutableMap<ImmutableMap<String, Object>, ImmutableMap<String, Object>> data = readSegmentZip(interval, zipPath);
+                Path segmentDir = Paths.get(root.toString(), relativePath, version, String.valueOf(i), "index");
+                ImmutableMap<ImmutableMap<String, Object>, ImmutableMap<String, Object>> data = readSegmentDir(interval, segmentDir);
                 for (Map.Entry<ImmutableMap<String, Object>, ImmutableMap<String, Object>> entry : data.entrySet()) {
                     rows.put(i, entry.getKey(), entry.getValue());
                 }
@@ -279,14 +278,11 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
         return rows;
     }
 
-    private ImmutableMap<ImmutableMap<String, Object>, ImmutableMap<String, Object>> readSegmentZip(Interval interval, Path zipPath) throws IOException {
-        Path tmpDir = Files.createTempDirectory(testFolder.toPath(),"temp");
-        tmpDir.toFile().deleteOnExit();
+    private ImmutableMap<ImmutableMap<String, Object>, ImmutableMap<String, Object>> readSegmentDir(Interval interval, Path segmentDir) throws IOException {
         ImmutableMap.Builder<ImmutableMap<String, Object>, ImmutableMap<String, Object>> values = ImmutableMap.builder();
 
-        CompressionUtils.unzip(zipPath.toFile(), tmpDir.toFile());
         IndexIO indexIO = new IndexIO(MAPPER, () -> 0);
-        QueryableIndexStorageAdapter queryableIndexStorageAdapter = new QueryableIndexStorageAdapter(indexIO.loadIndex(tmpDir.toFile()));
+        QueryableIndexStorageAdapter queryableIndexStorageAdapter = new QueryableIndexStorageAdapter(indexIO.loadIndex(segmentDir.toFile()));
         WindowedStorageAdapter windowedStorageAdapter = new WindowedStorageAdapter(queryableIndexStorageAdapter, interval);
         try (IngestSegmentFirehose firehose = new IngestSegmentFirehose(
                 Collections.singletonList(windowedStorageAdapter),
