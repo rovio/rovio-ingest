@@ -48,7 +48,7 @@
     </developers>
 
     <properties>
-        <druid.version>0.22.1</druid.version>
+        <druid.version>25.0.0</druid.version>
         <mysql.connector.version>8.0.28</mysql.connector.version>
         <postgresql.version>42.2.23</postgresql.version>
         <aws.sdk.version>1.12.129</aws.sdk.version>

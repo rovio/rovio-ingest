@@ -17,6 +17,7 @@ package com.rovio.ingest.util;
 
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.rovio.ingest.WriterContext;
 import org.apache.druid.segment.loading.DataSegmentKiller;
@@ -40,7 +41,7 @@ public class SegmentStorageUpdater {
         if (param.isLocalDeepStorage()) {
             return new LocalDataSegmentPusher(getLocalConfig(param.getLocalDir()));
         } else {
-            ServerSideEncryptingAmazonS3 serverSideEncryptingAmazonS3 = getAmazonS3();
+            ServerSideEncryptingAmazonS3 serverSideEncryptingAmazonS3 = getAmazonS3().get();
             S3DataSegmentPusherConfig s3Config = new S3DataSegmentPusherConfig();
             s3Config.setBucket(param.getS3Bucket());
             s3Config.setBaseKey(param.getS3BaseKey());
@@ -55,7 +56,7 @@ public class SegmentStorageUpdater {
         if (param.isLocalDeepStorage()) {
             return new LocalDataSegmentKiller(getLocalConfig(param.getLocalDir()));
         } else {
-            ServerSideEncryptingAmazonS3 serverSideEncryptingAmazonS3 = getAmazonS3();
+            Supplier<ServerSideEncryptingAmazonS3> serverSideEncryptingAmazonS3 = getAmazonS3();
             S3DataSegmentPusherConfig s3Config = new S3DataSegmentPusherConfig();
             s3Config.setBucket(param.getS3Bucket());
             s3Config.setBaseKey(param.getS3BaseKey());
@@ -65,10 +66,10 @@ public class SegmentStorageUpdater {
         }
     }
 
-    private static ServerSideEncryptingAmazonS3 getAmazonS3() {
+    private static Supplier<ServerSideEncryptingAmazonS3> getAmazonS3() {
         return Suppliers.memoize(() -> new ServerSideEncryptingAmazonS3(
                 AmazonS3ClientBuilder.defaultClient(),
-                new NoopServerSideEncryption())).get();
+                new NoopServerSideEncryption()));
     }
 
     private static LocalDataSegmentPusherConfig getLocalConfig(String localDir) {
