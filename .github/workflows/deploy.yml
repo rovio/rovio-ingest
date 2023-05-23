@@ -39,7 +39,7 @@ jobs:
         with:
           python-version: '3.7'
       - name: Install Poetry
-        run: pip install --upgrade MarkupSafe==2.0.1 poetry-core==1.0.4 poetry==1.1.8 poetry-dynamic-versioning==0.12.7
+        run: pip install --upgrade MarkupSafe==2.0.1 poetry-core==1.0.4 poetry==1.1.8 poetry-dynamic-versioning==0.12.7 urllib3==1.26.15
       - name: Install libkrb5-dev
         run: sudo apt-get install libkrb5-dev  # This is needed for installing pykerberos
       - name: Install python dependencies
