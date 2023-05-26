@@ -657,19 +657,6 @@ optional = false
 python-versions = "*"
 
 [[package]]
-name = "mock"
-version = "5.0.2"
-description = "Rolling backport of unittest.mock for all Pythons"
-category = "dev"
-optional = false
-python-versions = ">=3.6"
-
-[package.extras]
-build = ["twine", "wheel", "blurb"]
-docs = ["sphinx"]
-test = ["pytest", "pytest-cov"]
-
-[[package]]
 name = "more-itertools"
 version = "9.1.0"
 description = "More routines for operating on iterables, beyond itertools"
@@ -784,19 +771,11 @@ test = ["pep440", "pre-commit", "pytest", "testpath"]
 
 [[package]]
 name = "nest-asyncio"
-version = "1.5.6"
+version = "1.5.5"
 description = "Patch asyncio to allow nested event loops"
 category = "dev"
 optional = false
 python-versions = ">=3.5"
-
-[[package]]
-name = "nose"
-version = "1.3.7"
-description = "nose extends unittest to make testing easier"
-category = "dev"
-optional = false
-python-versions = "*"
 
 [[package]]
 name = "notebook"
@@ -1280,7 +1259,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "sparkmagic"
-version = "0.15.0"
+version = "0.20.5"
 description = "SparkMagic: Spark execution via Livy"
 category = "dev"
 optional = false
@@ -1289,16 +1268,15 @@ python-versions = "*"
 [package.dependencies]
 autovizwidget = ">=0.6"
 hdijupyterutils = ">=0.6"
-ipykernel = "*"
+ipykernel = ">=4.2.2"
 ipython = ">=4.0.2"
 ipywidgets = ">5.0.0"
-mock = "*"
-nose = "*"
+nest-asyncio = "1.5.5"
 notebook = ">=4.2"
 numpy = "*"
-pandas = ">=0.17.1"
+pandas = ">=0.17.1,<2.0.0"
 requests = "*"
-requests_kerberos = ">=0.8.0"
+requests-kerberos = ">=0.8.0"
 tornado = ">=4"
 
 [[package]]
@@ -1445,7 +1423,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "cc440e460681d06f1c4d7b64701b766ee1b98153d058df435510d344fb48690b"
+content-hash = "dff61377c49cf646f7c990555291bb591a53e11e0fe3de66403676ff84c6be78"
 
 [metadata.files]
 anyio = []
@@ -1496,14 +1474,12 @@ krb5 = []
 markupsafe = []
 matplotlib-inline = []
 mistune = []
-mock = []
 more-itertools = []
 nbclassic = []
 nbclient = []
 nbconvert = []
 nbformat = []
 nest-asyncio = []
-nose = []
 notebook = []
 notebook-shim = []
 numpy = []

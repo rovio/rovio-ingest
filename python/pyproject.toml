@@ -33,9 +33,12 @@ pytest = "5.4.3"
 pyspark-stubs = "3.0.0.post3"
 pandas = "1.1.5"
 jupyter = "1.0.0"
-sparkmagic = "0.15.0"
+sparkmagic = "0.20.5"
 boto3 = "1.21.40"
 safety = "1.10.3"
+# Not directly depending on tornado. Should set version explicitly to fix CWE-601.
+# However, tornado requires Python 3.8+ so can't upgrade yet.
+# tornado = "^6.3.2"
 
 [tool.poetry-dynamic-versioning]
 enable = true
