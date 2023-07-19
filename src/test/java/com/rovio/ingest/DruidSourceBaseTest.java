@@ -24,6 +24,7 @@ import com.rovio.ingest.WriterContext.ConfKeys;
 import com.rovio.ingest.util.NormalizeTimeColumnUDF;
 import org.apache.druid.common.config.NullHandling;
 import org.apache.druid.data.input.InputRow;
+import org.apache.druid.data.input.MapBasedInputRow;
 import org.apache.druid.java.util.emitter.EmittingLogger;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.metadata.MetadataStorageTablesConfig;
@@ -292,13 +293,13 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
                 null)) {
 
             while (firehose.hasMore()) {
-                InputRow inputRow = firehose.nextRow();
+                MapBasedInputRow inputRow = (MapBasedInputRow) firehose.nextRow();
                 if (inputRow != null) {
                     ImmutableMap.Builder<String, Object> dimensions = ImmutableMap.builder();
                     ImmutableMap.Builder<String, Object> metrics = ImmutableMap.builder();
                     inputRow.getDimensions().forEach(d -> dimensions.put(d, inputRow.getRaw(d)));
                     dimensions.put("__time", inputRow.getTimestamp());
-                    queryableIndexStorageAdapter.getAvailableMetrics().forEach(m -> metrics.put(m, inputRow.getMetric(m)));
+                    queryableIndexStorageAdapter.getAvailableMetrics().forEach(m -> metrics.put(m, inputRow.getEvent().get(m)));
                     values.put(dimensions.build(), metrics.build());
                 }
             }

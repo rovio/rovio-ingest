@@ -155,6 +155,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.druid.extensions</groupId>
+            <artifactId>druid-datasketches</artifactId>
+            <version>${druid.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.druid.extensions</groupId>
             <artifactId>mysql-metadata-storage</artifactId>
             <version>${druid.version}</version>
         </dependency>

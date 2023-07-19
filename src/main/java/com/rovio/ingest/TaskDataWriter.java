@@ -51,7 +51,10 @@ import org.apache.druid.timeline.partition.LinearShardSpec;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.connector.write.DataWriter;
 import org.apache.spark.sql.connector.write.WriterCommitMessage;
+import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StringType;
+import org.apache.spark.unsafe.types.UTF8String;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.slf4j.Logger;
@@ -59,6 +62,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Collections;
@@ -208,7 +212,13 @@ class TaskDataWriter implements DataWriter<InternalRow> {
                 // the configured time columnName is mapped to __time
                 map.put(SegmentSpec.TIME_DIMENSION, tsVal);
             } else {
-                map.put(columnName, record.get(field.getOrdinal(), field.getSqlType()));
+                DataType sqlType = field.getSqlType();
+                Object value = record.get(field.getOrdinal(), sqlType);
+                if (sqlType == DataTypes.StringType && value instanceof UTF8String) {
+                    // Convert to String as Spark return UTF8String which is not compatible with Druid sketches.
+                    value = new String(((UTF8String) value).getBytes(), StandardCharsets.UTF_8);
+                }
+                map.put(columnName, value);
             }
         }
         // build the full map first and validate then, so that map can be used in error message for convenience.

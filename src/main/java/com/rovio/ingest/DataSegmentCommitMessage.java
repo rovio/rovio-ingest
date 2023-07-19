@@ -22,6 +22,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.apache.druid.jackson.DefaultObjectMapper;
 import org.apache.druid.math.expr.ExprMacroTable;
+import org.apache.druid.query.aggregation.datasketches.hll.HllSketchModule;
+import org.apache.druid.query.aggregation.datasketches.kll.KllSketchModule;
+import org.apache.druid.query.aggregation.datasketches.quantiles.DoublesSketchModule;
+import org.apache.druid.query.aggregation.datasketches.theta.SketchModule;
+import org.apache.druid.query.aggregation.datasketches.tuple.ArrayOfDoublesSketchBuildComplexMetricSerde;
+import org.apache.druid.query.aggregation.datasketches.tuple.ArrayOfDoublesSketchMergeComplexMetricSerde;
+import org.apache.druid.query.aggregation.datasketches.tuple.ArrayOfDoublesSketchModule;
+import org.apache.druid.segment.serde.ComplexMetrics;
 import org.apache.druid.timeline.DataSegment;
 import org.apache.druid.timeline.partition.LinearShardSpec;
 import org.apache.spark.sql.connector.write.WriterCommitMessage;
@@ -52,6 +60,21 @@ public class DataSegmentCommitMessage implements WriterCommitMessage {
         MAPPER.registerSubtypes(new NamedType(LinearShardSpec.class, "linear"));
 
         MAPPER.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        new SketchModule().getJacksonModules().forEach(MAPPER::registerModule);
+        new HllSketchModule().getJacksonModules().forEach(MAPPER::registerModule);
+        new KllSketchModule().getJacksonModules().forEach(MAPPER::registerModule);
+        new DoublesSketchModule().getJacksonModules().forEach(MAPPER::registerModule);
+        new ArrayOfDoublesSketchModule().getJacksonModules().forEach(MAPPER::registerModule);
+
+        HllSketchModule.registerSerde();
+        KllSketchModule.registerSerde();
+        DoublesSketchModule.registerSerde();
+        SketchModule.registerSerde();
+        // ArrayOfDoublesSketchModule doesn't expose registerSerde() method, so we have to register it manually.
+        ComplexMetrics.registerSerde("arrayOfDoublesSketch", new ArrayOfDoublesSketchMergeComplexMetricSerde());
+        ComplexMetrics.registerSerde("arrayOfDoublesSketchMerge", new ArrayOfDoublesSketchMergeComplexMetricSerde());
+        ComplexMetrics.registerSerde("arrayOfDoublesSketchBuild", new ArrayOfDoublesSketchBuildComplexMetricSerde());
     }
 
 

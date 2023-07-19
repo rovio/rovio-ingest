@@ -39,7 +39,9 @@ import org.apache.spark.sql.types.StructType;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.rovio.ingest.DataSegmentCommitMessage.MAPPER;
 
@@ -188,7 +190,7 @@ public class SegmentSpec implements Serializable {
     private ImmutableList<DimensionSchema> getDimensionSchemas() {
         ImmutableList.Builder<DimensionSchema> builder = ImmutableList.builder();
         AggregatorFactory[] aggregators = getAggregators();
-        List<String> aggregatorFields = new ArrayList<>();
+        Set<String> aggregatorFields = new LinkedHashSet<>();
 
         for (AggregatorFactory aggregator : aggregators) {
             aggregatorFields.addAll(aggregator.requiredFields());
@@ -196,10 +198,10 @@ public class SegmentSpec implements Serializable {
 
         for (Field field : fields) {
             String fieldName = field.getName();
-            if (field.getFieldType() == FieldType.STRING) {
-                builder.add(StringDimensionSchema.create(fieldName));
-            } else if (!getTimeColumn().equals(fieldName) && !aggregatorFields.contains(fieldName)) {
-                if (field.getFieldType() == FieldType.LONG) {
+            if (!getTimeColumn().equals(fieldName) && !aggregatorFields.contains(fieldName)) {
+                if (field.getFieldType() == FieldType.STRING) {
+                    builder.add(StringDimensionSchema.create(fieldName));
+                } else if (field.getFieldType() == FieldType.LONG) {
                     builder.add(new LongDimensionSchema(fieldName));
                 } else if (field.getFieldType() == FieldType.DOUBLE) {
                     builder.add(new DoubleDimensionSchema(fieldName));
