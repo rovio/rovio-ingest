@@ -23,7 +23,7 @@
 
     <groupId>com.rovio.ingest</groupId>
     <artifactId>rovio-ingest</artifactId>
-    <version>1.0.5_spark_3.0.1-SNAPSHOT</version>
+    <version>1.0.6_spark_3.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>rovio-ingest</name>
     <description>An implementation of the DatasourceV2 interface of Apache Spark™ for writing Spark Datasets to Apache Druid™</description>
