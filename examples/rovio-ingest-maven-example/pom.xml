@@ -40,7 +40,7 @@
             <artifactId>rovio-ingest</artifactId>
             <version>1.0.6_spark_3.0.1-SNAPSHOT</version>
             <!-- NOTE: This requires the sonatype snapshot repository. See <repositories>.
-            <version>1.0.5_spark_3.0.1-SNAPSHOT</version>
+            <version>1.0.6_spark_3.0.1-SNAPSHOT</version>
             -->
         </dependency>
         <dependency>
