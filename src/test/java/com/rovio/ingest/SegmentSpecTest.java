@@ -22,6 +22,9 @@ import org.apache.druid.query.aggregation.DoubleMinAggregatorFactory;
 import org.apache.druid.query.aggregation.DoubleSumAggregatorFactory;
 import org.apache.druid.query.aggregation.LongMaxAggregatorFactory;
 import org.apache.druid.query.aggregation.LongSumAggregatorFactory;
+import org.apache.druid.query.aggregation.datasketches.hll.HllSketchAggregatorFactory;
+import org.apache.druid.query.aggregation.datasketches.hll.HllSketchBuildAggregatorFactory;
+import org.apache.druid.query.aggregation.datasketches.theta.SketchMergeAggregatorFactory;
 import org.apache.druid.segment.column.ValueType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
@@ -272,6 +275,7 @@ public class SegmentSpecTest {
     public void shouldSupportMetricsSpecAsJson() {
         StructType schema = new StructType()
                 .add("updateTime", DataTypes.TimestampType)
+                .add("user_id", DataTypes.StringType)
                 .add("country", DataTypes.StringType)
                 .add("city", DataTypes.StringType)
                 .add("metric1", DataTypes.LongType)
@@ -300,21 +304,36 @@ public class SegmentSpecTest {
                     "   \"name\": \"metric2_min\",\n" +
                     "   \"fieldName\": \"metric2\",\n" +
                     "   \"expression\": null\n" +
-                    "}" +
+                    "},\n" +
+                    "{\n" +
+                    "   \"type\": \"HLLSketchBuild\",\n" +
+                    "   \"name\": \"user_id_hll\",\n" +
+                    "   \"fieldName\": \"user_id\"\n" +
+                    "},\n" +
+                    "{\n" +
+                    "   \"type\": \"thetaSketch\",\n" +
+                    "   \"name\": \"user_id_theta\",\n" +
+                    "   \"fieldName\": \"user_id\",\n" +
+                    "   \"isInputThetaSketch\": false,\n" +
+                    "   \"size\": 4096\n" +
+                    "}\n" +
                 "]";
         SegmentSpec spec = SegmentSpec.from("temp", "updateTime",  Collections.emptyList(), "DAY", "DAY", schema, true, metricsSpec);
 
         assertEquals("temp", spec.getDataSchema().getDataSource());
         assertEquals("updateTime", spec.getTimeColumn());
 
-        assertEquals(4, spec.getDataSchema().getAggregators().length);
+        assertEquals(6, spec.getDataSchema().getAggregators().length);
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof LongSumAggregatorFactory && f.getName().equals("metric1") && Objects.equals(((LongSumAggregatorFactory) f).getFieldName(), "metric1")));
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof DoubleSumAggregatorFactory && f.getName().equals("metric2") && Objects.equals(((DoubleSumAggregatorFactory) f).getFieldName(), "metric2")));
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof LongMaxAggregatorFactory && f.getName().equals("metric1_max") && Objects.equals(((LongMaxAggregatorFactory) f).getFieldName(), "metric1")));
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof DoubleMinAggregatorFactory && f.getName().equals("metric2_min") && Objects.equals(((DoubleMinAggregatorFactory) f).getFieldName(), "metric2")));
+        assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof HllSketchBuildAggregatorFactory && f.getName().equals("user_id_hll") && Objects.equals(((HllSketchBuildAggregatorFactory) f).getFieldName(), "user_id")));
+        assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof SketchMergeAggregatorFactory && f.getName().equals("user_id_theta") && Objects.equals(((SketchMergeAggregatorFactory) f).getFieldName(), "user_id")));
 
         List<DimensionSchema> dimensions = spec.getDataSchema().getDimensionsSpec().getDimensions();
         assertEquals(2, dimensions.size());
+        // user_id is used in sketch aggregator, so it should be excluded from dimensions.
         List<String> expected = Arrays.asList("country", "city");
         assertTrue(dimensions.stream().allMatch(d -> expected.contains(d.getName())));
         assertTrue(dimensions.stream().allMatch(d -> ValueType.STRING == d.getColumnType().getType()));

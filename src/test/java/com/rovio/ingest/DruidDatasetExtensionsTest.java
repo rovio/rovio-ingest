@@ -18,9 +18,12 @@ package com.rovio.ingest;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Table;
 import com.rovio.ingest.extensions.java.DruidDatasetExtensions;
+import org.apache.datasketches.hll.HllSketch;
+import org.apache.druid.query.aggregation.datasketches.theta.SketchHolder;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.functions;
 import org.apache.spark.sql.types.DataTypes;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
@@ -343,5 +346,138 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
         assertNotNull(data);
         assertEquals(-1L, data.get("long_column"));
         assertNull(data.get("double_column"));
+    }
+
+
+    @Test
+    public void shouldWriteDataSegmentsWithSketchBuild() throws IOException {
+        String metricsSpec = "[" +
+                "{\n" +
+                "   \"type\": \"HLLSketchBuild\",\n" +
+                "   \"name\": \"string_column_hll\",\n" +
+                "   \"fieldName\": \"string_column\"\n" +
+                "}," +
+                "{\n" +
+                "   \"type\": \"thetaSketch\",\n" +
+                "   \"name\": \"string_column_theta\",\n" +
+                "   \"fieldName\": \"string_column\",\n" +
+                "   \"isInputThetaSketch\": false,\n" +
+                "   \"size\": 4096\n" +
+                "}]";
+        Dataset<Row> dataset = spark
+                .read()
+                .format("csv")
+                .option("header", "true")
+                .option("inferSchema", "true")
+                .option("timestampFormat", "yyyy-MM-dd")
+                .load(DruidSourceBaseTest.class.getResource("/data3.csv").getPath())
+                .withColumn("date", column("date").cast(DataTypes.TimestampType));
+        dataset = DruidDatasetExtensions
+                .repartitionByDruidSegmentSize(dataset, "date", "MONTH", 5000000, false);
+        dataset.show(false);
+
+        options.put(SEGMENT_GRANULARITY, "MONTH");
+        options.put(QUERY_GRANULARITY, "SECOND");
+        options.put(METRICS_SPEC, metricsSpec);
+        dataset.write()
+                .format(DruidSource.FORMAT)
+                .mode(SaveMode.Overwrite)
+                .options(options)
+                .save();
+
+        Interval interval = new Interval(DateTime.parse("2019-10-01T00:00:00Z"), DateTime.parse("2019-11-01T00:00:00Z"));
+        String version = DateTime.now(ISOChronology.getInstanceUTC()).toString();
+        verifySegmentPath(Paths.get(testFolder.toString(), DATA_SOURCE), interval, version, 1, true);
+        verifySegmentTable(interval, version, true, 1);
+        Table<Integer, ImmutableMap<String, Object>, ImmutableMap<String, Object>> parsed = readSegmentData(Paths.get(testFolder.toString(), DATA_SOURCE), interval, version, 1, true);
+        assertEquals(2, parsed.size());
+        assertTrue(parsed.containsRow(0));
+        // String column is automatically excluded from dimensions as it is used for sketch aggregation.
+        ImmutableMap<String, Object> dimensions = ImmutableMap.<String, Object>builder()
+                .put("__time", DateTime.parse("2019-10-16T00:01:00Z"))
+                .put("string_date_column", "2019-10-16 00:00:00")
+                .put("boolean_column", "true")
+                .put("long_column", "10")
+                .put("double_column", "100.0")
+                .build();
+        Map<String, Object> data = parsed.get(0, dimensions);
+        assertNotNull(data);
+        assertEquals(1.0, ((HllSketch) data.get("string_column_hll")).getEstimate());
+        assertEquals(1.0, ((SketchHolder) data.get("string_column_theta")).getEstimate());
+
+        // String column is automatically excluded from dimensions as it is used for sketch aggregation.
+        dimensions = ImmutableMap.<String, Object>builder()
+                .put("__time", DateTime.parse("2019-10-16T00:02:00Z"))
+                .put("string_date_column", "2019-10-16 00:00:00")
+                .put("boolean_column", "false")
+                .put("long_column", "-1")
+                .put("double_column", "-1.0")
+                .build();
+        data = parsed.get(0, dimensions);
+        assertNotNull(data);
+        assertEquals(1.0, ((HllSketch) data.get("string_column_hll")).getEstimate());
+        assertEquals(1.0, ((SketchHolder) data.get("string_column_theta")).getEstimate());
+    }
+
+    @Test
+    public void shouldWriteDataSegmentsWithThetaSketchAsInputColumn() throws IOException {
+        // string_column_theta is base64 encoded theta sketch.
+        String metricsSpec = "[" +
+                "{\n" +
+                "   \"type\": \"thetaSketch\",\n" +
+                "   \"name\": \"string_column_theta\",\n" +
+                "   \"fieldName\": \"string_column_theta\",\n" +
+                "   \"isInputThetaSketch\": true,\n" +
+                "   \"size\": 4096\n" +
+                "}]";
+        Dataset<Row> dataset = spark
+                .read()
+                .format("csv")
+                .option("header", "true")
+                .option("inferSchema", "true")
+                .option("timestampFormat", "yyyy-MM-dd")
+                .load(DruidSourceBaseTest.class.getResource("/data4.csv").getPath())
+                .withColumn("date", column("date").cast(DataTypes.TimestampType));
+        dataset = DruidDatasetExtensions
+                .repartitionByDruidSegmentSize(dataset, "date", "MONTH", 5000000, false);
+        dataset.show(false);
+
+        options.put(SEGMENT_GRANULARITY, "MONTH");
+        options.put(QUERY_GRANULARITY, "SECOND");
+        options.put(METRICS_SPEC, metricsSpec);
+        dataset.write()
+                .format(DruidSource.FORMAT)
+                .mode(SaveMode.Overwrite)
+                .options(options)
+                .save();
+
+        Interval interval = new Interval(DateTime.parse("2019-10-01T00:00:00Z"), DateTime.parse("2019-11-01T00:00:00Z"));
+        String version = DateTime.now(ISOChronology.getInstanceUTC()).toString();
+        verifySegmentPath(Paths.get(testFolder.toString(), DATA_SOURCE), interval, version, 1, true);
+        verifySegmentTable(interval, version, true, 1);
+        Table<Integer, ImmutableMap<String, Object>, ImmutableMap<String, Object>> parsed = readSegmentData(Paths.get(testFolder.toString(), DATA_SOURCE), interval, version, 1, true);
+        assertEquals(2, parsed.size());
+        assertTrue(parsed.containsRow(0));
+        ImmutableMap<String, Object> dimensions = ImmutableMap.<String, Object>builder()
+                .put("__time", DateTime.parse("2019-10-16T00:01:00Z"))
+                .put("string_date_column", "2019-10-16 00:00:00")
+                .put("boolean_column", "true")
+                .put("long_column", "10")
+                .put("double_column", "100.0")
+                .build();
+        Map<String, Object> data = parsed.get(0, dimensions);
+        assertNotNull(data);
+        assertEquals(4.0, ((SketchHolder) data.get("string_column_theta")).getEstimate());
+
+        dimensions = ImmutableMap.<String, Object>builder()
+                .put("__time", DateTime.parse("2019-10-16T00:02:00Z"))
+                .put("string_date_column", "2019-10-16 00:00:00")
+                .put("boolean_column", "false")
+                .put("long_column", "-1")
+                .put("double_column", "-1.0")
+                .build();
+        data = parsed.get(0, dimensions);
+        assertNotNull(data);
+        assertEquals(2.0, ((SketchHolder) data.get("string_column_theta")).getEstimate());
     }
 }

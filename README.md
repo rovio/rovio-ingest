@@ -144,7 +144,7 @@ Set the following spark conf:
 
 ```python
 .conf("spark.jars.packages",
-      "com.rovio.ingest:rovio-ingest:1.0.4_spark_3.0.1") \
+      "com.rovio.ingest:rovio-ingest:1.0.5_spark_3.0.1") \
 ```
 
 #### PySpark job example
@@ -206,14 +206,14 @@ A `Dataset[Row]` extension is provided to repartition the dataset for the `Druid
 For an interactive spark session you can set the following spark conf:
 
 ```scala
-("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.0.4_spark_3.0.1")
+("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.0.5_spark_3.0.1")
 ```
 
 To use a snapshot version:
 
 ```scala
 ("spark.jars.repositories", "https://s01.oss.sonatype.org/content/repositories/snapshots"),
-("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.0.5_spark_3.0.1-SNAPSHOT")
+("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.0.6_spark_3.0.1-SNAPSHOT")
 ```
 
 ```scala
@@ -249,7 +249,7 @@ Maven (for a full example, see [examples/rovio-ingest-maven-example](examples/ro
         <dependency>
             <groupId>com.rovio.ingest</groupId>
             <artifactId>rovio-ingest</artifactId>
-            <version>1.0.4_spark_3.0.1</version>
+            <version>1.0.5_spark_3.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -341,7 +341,7 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 | `druid.segment.rollup` | Whether to rollup data during ingestion. Enabling this requires that there be at least one numeric input column. | `true` |
 | `druid.use_default_values_for_null` | Whether use default values for nulls. See [Null Values](https://druid.apache.org/docs/latest/querying/sql.html#null-values) for details | `true` |
 | `druid.dimensions_spec` | List of dimensions provided as json string, when not provided defaults to all non metric/non time_column fields. See [DimensionsSpec](https://druid.apache.org/docs/latest/ingestion/index.html#dimensionsspec) for details | |
-| `druid.metrics_spec` | List of aggregators to apply at ingestion time as a json array string. Possible aggregators: [metricsSpec in Druid Docs](https://druid.apache.org/docs/latest/ingestion/ingestion-spec.html#metricsspec). When not provided, defaults to using `longSum` or `doubleSum` for all numeric columns. See also: [No-Code wrapper script](#no-code-wrapper-script). | |
+| `druid.metrics_spec` | List of aggregators to apply at ingestion time as a json array string. Possible aggregators: [metricsSpec in Druid Docs](https://druid.apache.org/docs/latest/ingestion/ingestion-spec.html#metricsspec). When not provided, defaults to using `longSum` or `doubleSum` for all numeric columns. [Datasketches](https://druid.apache.org/docs/latest/development/extensions-core/datasketches-extension.html) are supported only with this config, see [datasketches notebook](python/notebooks/druid_sketch_ingestion_test.ipynb). See also: [No-Code wrapper script](#no-code-wrapper-script). | |
 | `druid.transform_spec` | List of transformations provided as json string, when not provided defaults to no transformations. See [TransformSpec](https://druid.apache.org/docs/latest/ingestion/index.html#transformspec) for details | |
 
 ## Limitations
