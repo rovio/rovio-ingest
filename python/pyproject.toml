@@ -39,6 +39,8 @@ safety = "1.10.3"
 # Not directly depending on tornado. Should set version explicitly to fix CWE-601.
 # However, tornado requires Python 3.8+ so can't upgrade yet.
 # tornado = "^6.3.2"
+# Not directly depending on cryptography. Should set version explicitly to fix CWE-295.
+cryptography="^41.0.3"
 
 [tool.poetry-dynamic-versioning]
 enable = true
