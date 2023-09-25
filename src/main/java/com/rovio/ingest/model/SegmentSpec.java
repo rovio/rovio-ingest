@@ -30,6 +30,7 @@ import org.apache.druid.java.util.common.granularity.Granularity;
 import org.apache.druid.query.aggregation.AggregatorFactory;
 import org.apache.druid.query.aggregation.DoubleSumAggregatorFactory;
 import org.apache.druid.query.aggregation.LongSumAggregatorFactory;
+import org.apache.druid.segment.column.ValueType;
 import org.apache.druid.segment.indexing.DataSchema;
 import org.apache.druid.segment.indexing.granularity.GranularitySpec;
 import org.apache.druid.segment.indexing.granularity.UniformGranularitySpec;
@@ -39,9 +40,11 @@ import org.apache.spark.sql.types.StructType;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.rovio.ingest.DataSegmentCommitMessage.MAPPER;
 
@@ -64,6 +67,8 @@ public class SegmentSpec implements Serializable {
     private final String metricsSpec;
     private final String transformSpec;
 
+    private final Set<String> complexMetricColumns;
+
     private SegmentSpec(String dataSource, String timeColumn, String segmentGranularity, String queryGranularity,
                         List<Field> fields, Field partitionTime, Field partitionNum, boolean rollup,
                         String dimensionsSpec, String metricsSpec, String transformSpec) {
@@ -78,6 +83,11 @@ public class SegmentSpec implements Serializable {
         this.dimensionsSpec = dimensionsSpec;
         this.metricsSpec = metricsSpec;
         this.transformSpec = transformSpec;
+        this.complexMetricColumns = Arrays
+                .stream(getAggregators())
+                .filter(aggregatorFactory -> aggregatorFactory.getIntermediateType().is(ValueType.COMPLEX))
+                .flatMap((AggregatorFactory aggregatorFactory) -> aggregatorFactory.requiredFields().stream())
+                .collect(Collectors.toSet());
     }
 
     public static SegmentSpec from(String datasource, String timeColumn, List<String> excludedDimensions,
@@ -254,5 +264,9 @@ public class SegmentSpec implements Serializable {
         }
 
         return builder.build().toArray(new AggregatorFactory[0]);
+    }
+
+    public Set<String> getComplexMetricColumns() {
+        return complexMetricColumns;
     }
 }

@@ -22,7 +22,6 @@ import org.apache.druid.query.aggregation.DoubleMinAggregatorFactory;
 import org.apache.druid.query.aggregation.DoubleSumAggregatorFactory;
 import org.apache.druid.query.aggregation.LongMaxAggregatorFactory;
 import org.apache.druid.query.aggregation.LongSumAggregatorFactory;
-import org.apache.druid.query.aggregation.datasketches.hll.HllSketchAggregatorFactory;
 import org.apache.druid.query.aggregation.datasketches.hll.HllSketchBuildAggregatorFactory;
 import org.apache.druid.query.aggregation.datasketches.theta.SketchMergeAggregatorFactory;
 import org.apache.druid.segment.column.ValueType;
@@ -266,9 +265,8 @@ public class SegmentSpecTest {
                 .add("city", DataTypes.StringType)
                 .add("metric1", DataTypes.LongType)
                 .add("metric2", DataTypes.DoubleType);
-        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, "{}");
         assertThrows(IllegalArgumentException.class,
-                spec::getDataSchema);
+                () -> SegmentSpec.from("temp", "__time", Collections.emptyList(), "DAY", "DAY", schema, true, "{}"));
     }
 
     @Test
@@ -330,6 +328,9 @@ public class SegmentSpecTest {
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof DoubleMinAggregatorFactory && f.getName().equals("metric2_min") && Objects.equals(((DoubleMinAggregatorFactory) f).getFieldName(), "metric2")));
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof HllSketchBuildAggregatorFactory && f.getName().equals("user_id_hll") && Objects.equals(((HllSketchBuildAggregatorFactory) f).getFieldName(), "user_id")));
         assertTrue(Arrays.stream(spec.getDataSchema().getAggregators()).anyMatch(f -> f instanceof SketchMergeAggregatorFactory && f.getName().equals("user_id_theta") && Objects.equals(((SketchMergeAggregatorFactory) f).getFieldName(), "user_id")));
+
+        assertEquals(1, spec.getComplexMetricColumns().size());
+        assertTrue(spec.getComplexMetricColumns().contains("user_id"));
 
         List<DimensionSchema> dimensions = spec.getDataSchema().getDimensionsSpec().getDimensions();
         assertEquals(2, dimensions.size());

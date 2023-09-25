@@ -53,8 +53,6 @@ import org.apache.spark.sql.connector.write.DataWriter;
 import org.apache.spark.sql.connector.write.WriterCommitMessage;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StringType;
-import org.apache.spark.unsafe.types.UTF8String;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.slf4j.Logger;
@@ -62,7 +60,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Collections;
@@ -99,6 +96,7 @@ class TaskDataWriter implements DataWriter<InternalRow> {
         this.segmentSpec = segmentSpec;
         this.maxRows = context.getSegmentMaxRows();
         this.dataSchema = segmentSpec.getDataSchema();
+
         this.tuningConfig = getTuningConfig(context);
         DataSegmentPusher segmentPusher = SegmentStorageUpdater.createPusher(context);
         // Similar code for creating a basePersistDirectory was removed in https://github.com/apache/druid/pull/13040
@@ -214,9 +212,9 @@ class TaskDataWriter implements DataWriter<InternalRow> {
             } else {
                 DataType sqlType = field.getSqlType();
                 Object value = record.get(field.getOrdinal(), sqlType);
-                if (sqlType == DataTypes.StringType && value instanceof UTF8String) {
-                    // Convert to String as Spark return UTF8String which is not compatible with Druid sketches.
-                    value = new String(((UTF8String) value).getBytes(), StandardCharsets.UTF_8);
+                if (value != null && segmentSpec.getComplexMetricColumns().contains(columnName) && sqlType == DataTypes.StringType) {
+                    // Convert to Java String as Spark return UTF8String which is not compatible with Druid sketches.
+                    value = value.toString();
                 }
                 map.put(columnName, value);
             }
