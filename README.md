@@ -144,7 +144,7 @@ Set the following spark conf:
 
 ```python
 .conf("spark.jars.packages",
-      "com.rovio.ingest:rovio-ingest:1.0.5_spark_3.0.1") \
+      "com.rovio.ingest:rovio-ingest:1.0.6_spark_3.0.1") \
 ```
 
 #### PySpark job example
@@ -206,7 +206,7 @@ A `Dataset[Row]` extension is provided to repartition the dataset for the `Druid
 For an interactive spark session you can set the following spark conf:
 
 ```scala
-("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.0.5_spark_3.0.1")
+("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.0.6_spark_3.0.1")
 ```
 
 To use a snapshot version:
@@ -249,7 +249,7 @@ Maven (for a full example, see [examples/rovio-ingest-maven-example](examples/ro
         <dependency>
             <groupId>com.rovio.ingest</groupId>
             <artifactId>rovio-ingest</artifactId>
-            <version>1.0.5_spark_3.0.1</version>
+            <version>1.0.6_spark_3.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
