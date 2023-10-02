@@ -38,9 +38,9 @@
         <dependency>
             <groupId>com.rovio.ingest</groupId>
             <artifactId>rovio-ingest</artifactId>
-            <version>1.0.5_spark_3.0.1</version>
+            <version>1.0.6_spark_3.0.1</version>
             <!-- NOTE: This requires the sonatype snapshot repository. See <repositories>.
-            <version>1.0.6_spark_3.0.1-SNAPSHOT</version>
+            <version>1.0.7_spark_3.0.1-SNAPSHOT</version>
             -->
         </dependency>
         <dependency>
