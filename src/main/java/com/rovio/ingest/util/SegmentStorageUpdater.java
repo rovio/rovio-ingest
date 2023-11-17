@@ -25,14 +25,20 @@ import org.apache.druid.segment.loading.DataSegmentPusher;
 import org.apache.druid.segment.loading.LocalDataSegmentKiller;
 import org.apache.druid.segment.loading.LocalDataSegmentPusher;
 import org.apache.druid.segment.loading.LocalDataSegmentPusherConfig;
+import org.apache.druid.storage.hdfs.HdfsDataSegmentKiller;
+import org.apache.druid.storage.hdfs.HdfsDataSegmentPusher;
+import org.apache.druid.storage.hdfs.HdfsDataSegmentPusherConfig;
 import org.apache.druid.storage.s3.NoopServerSideEncryption;
 import org.apache.druid.storage.s3.S3DataSegmentKiller;
 import org.apache.druid.storage.s3.S3DataSegmentPusher;
 import org.apache.druid.storage.s3.S3DataSegmentPusherConfig;
 import org.apache.druid.storage.s3.S3InputDataConfig;
 import org.apache.druid.storage.s3.ServerSideEncryptingAmazonS3;
+import org.apache.hadoop.conf.Configuration;
 
 import java.io.File;
+
+import static com.rovio.ingest.DataSegmentCommitMessage.MAPPER;
 
 public class SegmentStorageUpdater {
 
@@ -40,6 +46,8 @@ public class SegmentStorageUpdater {
         Preconditions.checkNotNull(param);
         if (param.isLocalDeepStorage()) {
             return new LocalDataSegmentPusher(getLocalConfig(param.getLocalDir()));
+        } else if (param.isHdfsDeepStorage()) {
+            return new HdfsDataSegmentPusher(getHdfsConfig(param.getHdfsStorageDir()), new Configuration(), MAPPER);
         } else {
             ServerSideEncryptingAmazonS3 serverSideEncryptingAmazonS3 = getAmazonS3().get();
             S3DataSegmentPusherConfig s3Config = new S3DataSegmentPusherConfig();
@@ -55,6 +63,8 @@ public class SegmentStorageUpdater {
         Preconditions.checkNotNull(param);
         if (param.isLocalDeepStorage()) {
             return new LocalDataSegmentKiller(getLocalConfig(param.getLocalDir()));
+        } else if (param.isHdfsDeepStorage()) {
+            return new HdfsDataSegmentKiller(new Configuration(), getHdfsConfig(param.getHdfsStorageDir()));
         } else {
             Supplier<ServerSideEncryptingAmazonS3> serverSideEncryptingAmazonS3 = getAmazonS3();
             S3DataSegmentPusherConfig s3Config = new S3DataSegmentPusherConfig();
@@ -79,6 +89,14 @@ public class SegmentStorageUpdater {
                 config.storageDirectory = new File(localDir);
             }
             return config;
+        }).get();
+    }
+
+    private static HdfsDataSegmentPusherConfig getHdfsConfig(String hdfsStorageDir) {
+        return Suppliers.memoize(() -> {
+            HdfsDataSegmentPusherConfig hdfsSegmentPusherConfig = new HdfsDataSegmentPusherConfig();
+            hdfsSegmentPusherConfig.setStorageDirectory(hdfsStorageDir);
+            return hdfsSegmentPusherConfig;
         }).get();
     }
 }

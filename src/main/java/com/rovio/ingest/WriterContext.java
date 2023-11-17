@@ -63,6 +63,7 @@ public class WriterContext implements Serializable {
     private final String dimensionsSpec;
     private final String metricsSpec;
     private final String transformSpec;
+    private String getHdfsStorageDir;
 
     private WriterContext(CaseInsensitiveStringMap options, String version) {
         this.dataSource = getOrThrow(options, ConfKeys.DATA_SOURCE);
@@ -95,9 +96,10 @@ public class WriterContext implements Serializable {
         this.s3BaseKey = options.getOrDefault(ConfKeys.DEEP_STORAGE_S3_BASE_KEY, null);
         this.s3DisableAcl = options.getBoolean(ConfKeys.DEEP_STORAGE_S3_DISABLE_ACL, false);
         this.localDir = options.getOrDefault(ConfKeys.DEEP_STORAGE_LOCAL_DIRECTORY, null);
+        this.getHdfsStorageDir = options.getOrDefault(ConfKeys.DEEP_STORAGE_HDFS_DIRECTORY, null);
 
         this.deepStorageType = options.getOrDefault(ConfKeys.DEEP_STORAGE_TYPE, DEFAULT_DRUID_DEEP_STORAGE_TYPE);
-        Preconditions.checkArgument(Arrays.asList("s3", "local").contains(this.deepStorageType),
+        Preconditions.checkArgument(Arrays.asList("s3", "local", "hdfs").contains(this.deepStorageType),
                 String.format("Invalid %s: %s", ConfKeys.DEEP_STORAGE_TYPE, this.deepStorageType));
 
         this.initDataSource = options.getBoolean(ConfKeys.DATASOURCE_INIT, false);
@@ -206,6 +208,10 @@ public class WriterContext implements Serializable {
         return "local".equals(deepStorageType);
     }
 
+    public boolean isHdfsDeepStorage() {
+        return "hdfs".equals(deepStorageType);
+    }
+
     public boolean isRollup() {
         return rollup;
     }
@@ -226,7 +232,11 @@ public class WriterContext implements Serializable {
         return transformSpec;
     }
 
-  public static class ConfKeys {
+    public String getHdfsStorageDir() {
+        return getHdfsStorageDir;
+    }
+
+    public static class ConfKeys {
         public static final String DATASOURCE_INIT = "druid.datasource.init";
         // Segment config
         public static final String DATA_SOURCE = "druid.datasource";
@@ -256,5 +266,7 @@ public class WriterContext implements Serializable {
         public static final String DEEP_STORAGE_S3_DISABLE_ACL = "druid.segment_storage.s3.disableacl";
         // Local config (only for testing)
         public static final String DEEP_STORAGE_LOCAL_DIRECTORY = "druid.segment_storage.local.dir";
+        // HDFS config
+        public static final String DEEP_STORAGE_HDFS_DIRECTORY = "druid.segment_storage.hdfs.dir";
     }
 }
