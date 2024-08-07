@@ -30,6 +30,7 @@ import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.metadata.MetadataStorageTablesConfig;
 import org.apache.druid.segment.IndexIO;
 import org.apache.druid.segment.QueryableIndexStorageAdapter;
+import org.apache.druid.segment.column.ColumnConfig;
 import org.apache.druid.segment.realtime.firehose.IngestSegmentFirehose;
 import org.apache.druid.segment.realtime.firehose.WindowedStorageAdapter;
 import org.apache.druid.segment.transform.TransformSpec;
@@ -51,6 +52,7 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,6 +65,7 @@ import java.sql.Statement;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.rovio.ingest.DataSegmentCommitMessage.MAPPER;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
@@ -93,10 +96,18 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
     public static MySQLContainer<?> getMySQLContainer() {
         // MySQL 8 requires mysql-connector-java 8.x so we test against that.
         // The mysql-connector-java 8.x also works with MySQL 5
-        return new MySQLContainer<>("mysql:8.0.28")
-                .withUsername(dbUser)
-                .withPassword(dbPass)
-                .withDatabaseName(DB_NAME);
+        if (Objects.equals(System.getProperty("os.arch"), "aarch64")) {
+            DockerImageName myImage = DockerImageName.parse("arm64v8/mysql:8.0.36").asCompatibleSubstituteFor("mysql");
+            return new MySQLContainer<>(myImage)
+                    .withUsername(dbUser)
+                    .withPassword(dbPass)
+                    .withDatabaseName(DB_NAME);
+        } else {
+            return new MySQLContainer<>("mysql:8.0.36")
+                    .withUsername(dbUser)
+                    .withPassword(dbPass)
+                    .withDatabaseName(DB_NAME);
+        }
     }
 
     public static PostgreSQLContainer<?> getPostgreSQLContainer() {
@@ -128,6 +139,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
                             + "  version VARCHAR(255) NOT NULL,\n"
                             + "  used BOOLEAN NOT NULL,\n"
                             + "  payload BLOB NOT NULL,\n"
+                            + "  used_status_last_updated VARCHAR(255) NOT NULL,\n"
                             + "  PRIMARY KEY (id)\n"
                             + ")",
                     segmentsTable));
@@ -143,6 +155,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
                             + "  version VARCHAR(255) NOT NULL,\n"
                             + "  used BOOLEAN NOT NULL,\n"
                             + "  payload BYTEA NOT NULL,\n"
+                            + "  used_status_last_updated VARCHAR(255) NOT NULL,\n"
                             + "  PRIMARY KEY (id)\n"
                             + ")",
                     segmentsTable));
@@ -242,7 +255,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
         String sql = "SELECT count(id) as c from %1s" +
                 " where dataSource = :dataSource" +
                 " and start < :end" +
-                " and end >= :start" +
+                " and \"end\" >= :start" +
                 " and version = :version" +
                 " and used = :used";
 
@@ -282,7 +295,7 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
     private ImmutableMap<ImmutableMap<String, Object>, ImmutableMap<String, Object>> readSegmentDir(Interval interval, Path segmentDir) throws IOException {
         ImmutableMap.Builder<ImmutableMap<String, Object>, ImmutableMap<String, Object>> values = ImmutableMap.builder();
 
-        IndexIO indexIO = new IndexIO(MAPPER, () -> 0);
+        IndexIO indexIO = new IndexIO(MAPPER, ColumnConfig.DEFAULT);
         QueryableIndexStorageAdapter queryableIndexStorageAdapter = new QueryableIndexStorageAdapter(indexIO.loadIndex(segmentDir.toFile()));
         WindowedStorageAdapter windowedStorageAdapter = new WindowedStorageAdapter(queryableIndexStorageAdapter, interval);
         try (IngestSegmentFirehose firehose = new IngestSegmentFirehose(

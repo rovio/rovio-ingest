@@ -60,6 +60,7 @@ public class WriterContext implements Serializable {
     private final String version;
     private final boolean rollup;
     private final boolean useDefaultValueForNull;
+    private final boolean useThreeValueLogicForNativeFilters;
     private final String dimensionsSpec;
     private final String metricsSpec;
     private final String transformSpec;
@@ -105,6 +106,7 @@ public class WriterContext implements Serializable {
         this.initDataSource = options.getBoolean(ConfKeys.DATASOURCE_INIT, false);
         this.rollup = options.getBoolean(ConfKeys.SEGMENT_ROLLUP, true);
         this.useDefaultValueForNull = options.getBoolean(ConfKeys.USE_DEFAULT_VALUES_FOR_NULL, true);
+        this.useThreeValueLogicForNativeFilters = options.getBoolean(ConfKeys.USE_THREE_VALUE_LOGIC_FOR_NATIVE_FILTERS, true);
         this.dimensionsSpec = options.getOrDefault(ConfKeys.DIMENSIONS_SPEC, null);
         this.metricsSpec = options.getOrDefault(ConfKeys.METRICS_SPEC, null);
         this.transformSpec = options.getOrDefault(ConfKeys.TRANSFORM_SPEC, null);
@@ -220,6 +222,10 @@ public class WriterContext implements Serializable {
         return useDefaultValueForNull;
     }
 
+    public boolean isUseThreeValueLogicForNativeFilters() {
+        return useThreeValueLogicForNativeFilters;
+    }
+
     public String getDimensionsSpec() {
         return dimensionsSpec;
     }
@@ -252,6 +258,7 @@ public class WriterContext implements Serializable {
         public static final String MAX_ROWS_IN_MEMORY = "druid.memory.max_rows";
         public static final String SEGMENT_ROLLUP = "druid.segment.rollup";
         public static final String USE_DEFAULT_VALUES_FOR_NULL = "druid.use_default_values_for_null";
+        public static final String USE_THREE_VALUE_LOGIC_FOR_NATIVE_FILTERS = "druid.use_three_value_logic_for_native_filters";
         // Metadata config
         public static final String METADATA_DB_TYPE = "druid.metastore.db.type";
         public static final String METADATA_DB_URI = "druid.metastore.db.uri";
