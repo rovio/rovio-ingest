@@ -30,6 +30,7 @@ import org.apache.druid.segment.IndexIO;
 import org.apache.druid.segment.IndexMerger;
 import org.apache.druid.segment.IndexMergerV9;
 import org.apache.druid.segment.IndexSpec;
+import org.apache.druid.segment.column.ColumnConfig;
 import org.apache.druid.segment.data.BitmapSerdeFactory;
 import org.apache.druid.segment.data.ConciseBitmapSerdeFactory;
 import org.apache.druid.segment.data.RoaringBitmapSerdeFactory;
@@ -74,7 +75,7 @@ import java.util.function.Supplier;
 import static com.rovio.ingest.DataSegmentCommitMessage.MAPPER;
 
 class TaskDataWriter implements DataWriter<InternalRow> {
-    private static final IndexIO INDEX_IO = new IndexIO(MAPPER, () -> 0);
+    private static final IndexIO INDEX_IO = new IndexIO(MAPPER, ColumnConfig.DEFAULT);
     private static final IndexMerger INDEX_MERGER_V_9 = new IndexMergerV9(MAPPER, INDEX_IO, TmpFileSegmentWriteOutMediumFactory.instance());
     private static final Logger LOG = LoggerFactory.getLogger(TaskDataWriter.class);
 
@@ -112,7 +113,7 @@ class TaskDataWriter implements DataWriter<InternalRow> {
         this.appenderator.startJob();
 
         try {
-            ReflectionUtils.setStaticFieldValue(NullHandling.class, "INSTANCE", new NullValueHandlingConfig(context.isUseDefaultValueForNull(), null));
+            ReflectionUtils.setStaticFieldValue(NullHandling.class, "INSTANCE", new NullValueHandlingConfig(context.isUseDefaultValueForNull(), context.isUseThreeValueLogicForNativeFilters(), null));
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new IllegalStateException("Unable to set null handling!!", e);
         }
@@ -270,7 +271,7 @@ class TaskDataWriter implements DataWriter<InternalRow> {
                 null,
                 null,
                 null,
-                new IndexSpec(getBitmapSerdeFactory(context), null, null, null),
+                new IndexSpec(getBitmapSerdeFactory(context), null, null, null, null, null, null),
                 null,
                 0,
                 0,
@@ -287,7 +288,7 @@ class TaskDataWriter implements DataWriter<InternalRow> {
             case "concise":
                 return new ConciseBitmapSerdeFactory();
             case "roaring":
-                return new RoaringBitmapSerdeFactory(true);
+                return RoaringBitmapSerdeFactory.getInstance();
         }
         throw new IllegalArgumentException(
                 "Unknown bitmap factory: '" + context.getBitmapFactory() + "'");

@@ -18,7 +18,7 @@ package com.rovio.ingest;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Table;
 import com.rovio.ingest.extensions.java.DruidDatasetExtensions;
-import org.apache.datasketches.hll.HllSketch;
+import org.apache.druid.query.aggregation.datasketches.hll.HllSketchHolder;
 import org.apache.druid.query.aggregation.datasketches.theta.SketchHolder;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -402,7 +402,7 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
                 .build();
         Map<String, Object> data = parsed.get(0, dimensions);
         assertNotNull(data);
-        assertEquals(1.0, ((HllSketch) data.get("string_column_hll")).getEstimate());
+        assertEquals(1.0, ((HllSketchHolder) data.get("string_column_hll")).getEstimate());
         assertEquals(1.0, ((SketchHolder) data.get("string_column_theta")).getEstimate());
 
         // String column is automatically excluded from dimensions as it is used for sketch aggregation.
@@ -415,7 +415,7 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
                 .build();
         data = parsed.get(0, dimensions);
         assertNotNull(data);
-        assertEquals(1.0, ((HllSketch) data.get("string_column_hll")).getEstimate());
+        assertEquals(1.0, ((HllSketchHolder) data.get("string_column_hll")).getEstimate());
         assertEquals(1.0, ((SketchHolder) data.get("string_column_theta")).getEstimate());
     }
 

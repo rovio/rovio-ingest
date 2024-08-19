@@ -48,11 +48,13 @@
     </developers>
 
     <properties>
-        <druid.version>25.0.0</druid.version>
+        <druid.version>29.0.0</druid.version>
         <mysql.connector.version>8.0.28</mysql.connector.version>
         <postgresql.version>42.2.23</postgresql.version>
         <aws.sdk.version>1.12.129</aws.sdk.version>
         <java.version>1.8</java.version>
+        <antlr4.version>4.9.3</antlr4.version>
+        <jackson.version>2.14.3</jackson.version>
         <slf4j.version>1.7.32</slf4j.version>
         <junit-jupiter.version>5.7.2</junit-jupiter.version>
         <junit.version>4.13.2</junit.version>
@@ -104,6 +106,56 @@
                     <!-- Druid library needs a newer version than what spark 3.0.1 brings -->
                     <groupId>org.roaringbitmap</groupId>
                     <artifactId>RoaringBitmap</artifactId>
+                </exclusion>
+                <exclusion>
+                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-annotations</artifactId>
+                </exclusion>
+                <exclusion>
+                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                </exclusion>
+                <exclusion>
+                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <groupId>com.fasterxml.jackson.module</groupId>
+                    <artifactId>jackson-module-scala_2.12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <groupId>com.fasterxml.jackson.datatype</groupId>
+                    <artifactId>jackson-datatype-joda</artifactId>
+                </exclusion>
+                <exclusion>
+                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <groupId>com.fasterxml.jackson.datatype</groupId>
+                    <artifactId>jackson-datatype-guava</artifactId>
+                </exclusion>
+                <exclusion>
+                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <groupId>com.fasterxml.jackson.jaxrs</groupId>
+                    <artifactId>jackson-jaxrs-json-provider</artifactId>
+                </exclusion>
+                <exclusion>
+                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <groupId>com.fasterxml.jackson.jaxrs</groupId>
+                    <artifactId>jackson-jaxrs-smile-provider</artifactId>
+                </exclusion>
+                <exclusion>
+                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <groupId>com.fasterxml.jackson.dataformat</groupId>
+                    <artifactId>jackson-dataformat-smile</artifactId>
+                </exclusion>
+                <exclusion>
+                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <groupId>org.antlr</groupId>
+                    <artifactId>antlr4-runtime</artifactId>
                 </exclusion>
             </exclusions>
             <scope>provided</scope>
@@ -266,6 +318,31 @@
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-scala_${scala.version}</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4-runtime</artifactId>
+            <version>${antlr4.version}</version>
         </dependency>
     </dependencies>
 
