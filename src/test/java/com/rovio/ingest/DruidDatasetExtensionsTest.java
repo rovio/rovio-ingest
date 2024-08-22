@@ -268,7 +268,7 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
         ImmutableMap<String, Object> dimensions = ImmutableMap.<String, Object>builder()
                 .put("string_column", "US")
                 .put("__time", DateTime.parse("2019-10-16T00:01:00Z"))
-                .put("string_date_column", "2019-10-16 00:00:00")
+                .put("string_date_column", "2019-10-16")
                 .put("boolean_column", "true")
                 .build();
         Map<String, Object> data = parsed.get(0, dimensions);
@@ -278,7 +278,7 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
         dimensions = ImmutableMap.<String, Object>builder()
                 .put("string_column", "US")
                 .put("__time", DateTime.parse("2019-10-16T00:02:00Z"))
-                .put("string_date_column", "2019-10-16 00:00:00")
+                .put("string_date_column", "2019-10-16")
                 .put("boolean_column", "false")
                 .build();
         data = parsed.get(0, dimensions);
@@ -326,7 +326,7 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
         ImmutableMap<String, Object> dimensions = ImmutableMap.<String, Object>builder()
                 .put("string_column", "US")
                 .put("__time", DateTime.parse("2019-10-16T00:01:00Z"))
-                .put("string_date_column", "2019-10-16 00:00:00")
+                .put("string_date_column", "2019-10-16")
                 .put("boolean_column", "true")
                 .put("double_column", "100.0")
                 .build();
@@ -338,7 +338,7 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
         dimensions = ImmutableMap.<String, Object>builder()
                 .put("string_column", "US")
                 .put("__time", DateTime.parse("2019-10-16T00:02:00Z"))
-                .put("string_date_column", "2019-10-16 00:00:00")
+                .put("string_date_column", "2019-10-16")
                 .put("boolean_column", "false")
                 .put("double_column", "-1.0")
                 .build();
@@ -395,7 +395,7 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
         // String column is automatically excluded from dimensions as it is used for sketch aggregation.
         ImmutableMap<String, Object> dimensions = ImmutableMap.<String, Object>builder()
                 .put("__time", DateTime.parse("2019-10-16T00:01:00Z"))
-                .put("string_date_column", "2019-10-16 00:00:00")
+                .put("string_date_column", "2019-10-16")
                 .put("boolean_column", "true")
                 .put("long_column", "10")
                 .put("double_column", "100.0")
@@ -408,7 +408,7 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
         // String column is automatically excluded from dimensions as it is used for sketch aggregation.
         dimensions = ImmutableMap.<String, Object>builder()
                 .put("__time", DateTime.parse("2019-10-16T00:02:00Z"))
-                .put("string_date_column", "2019-10-16 00:00:00")
+                .put("string_date_column", "2019-10-16")
                 .put("boolean_column", "false")
                 .put("long_column", "-1")
                 .put("double_column", "-1.0")
@@ -460,7 +460,7 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
         assertTrue(parsed.containsRow(0));
         ImmutableMap<String, Object> dimensions = ImmutableMap.<String, Object>builder()
                 .put("__time", DateTime.parse("2019-10-16T00:01:00Z"))
-                .put("string_date_column", "2019-10-16 00:00:00")
+                .put("string_date_column", "2019-10-16")
                 .put("boolean_column", "true")
                 .put("long_column", "10")
                 .put("double_column", "100.0")
@@ -471,7 +471,7 @@ public class DruidDatasetExtensionsTest extends DruidSourceBaseTest {
 
         dimensions = ImmutableMap.<String, Object>builder()
                 .put("__time", DateTime.parse("2019-10-16T00:02:00Z"))
-                .put("string_date_column", "2019-10-16 00:00:00")
+                .put("string_date_column", "2019-10-16")
                 .put("boolean_column", "false")
                 .put("long_column", "-1")
                 .put("double_column", "-1.0")
