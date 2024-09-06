@@ -15,7 +15,9 @@
  */
 package com.rovio.ingest;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rovio.ingest.model.Field;
+import com.rovio.ingest.model.FieldType;
 import com.rovio.ingest.model.SegmentSpec;
 import com.rovio.ingest.util.ReflectionUtils;
 import com.rovio.ingest.util.SegmentStorageUpdater;
@@ -38,6 +40,7 @@ import org.apache.druid.segment.indexing.DataSchema;
 import org.apache.druid.segment.indexing.RealtimeTuningConfig;
 import org.apache.druid.segment.loading.DataSegmentKiller;
 import org.apache.druid.segment.loading.DataSegmentPusher;
+import org.apache.druid.segment.nested.StructuredData;
 import org.apache.druid.segment.realtime.FireDepartmentMetrics;
 import org.apache.druid.segment.realtime.appenderator.Appenderator;
 import org.apache.druid.segment.realtime.appenderator.DefaultOfflineAppenderatorFactory;
@@ -50,6 +53,7 @@ import org.apache.druid.segment.writeout.TmpFileSegmentWriteOutMediumFactory;
 import org.apache.druid.timeline.DataSegment;
 import org.apache.druid.timeline.partition.LinearShardSpec;
 import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.connector.write.DataWriter;
 import org.apache.spark.sql.connector.write.WriterCommitMessage;
 import org.apache.spark.sql.types.DataType;
@@ -63,6 +67,7 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -216,6 +221,40 @@ class TaskDataWriter implements DataWriter<InternalRow> {
                 if (value != null && segmentSpec.getComplexMetricColumns().contains(columnName) && sqlType == DataTypes.StringType) {
                     // Convert to Java String as Spark return UTF8String which is not compatible with Druid sketches.
                     value = value.toString();
+                }
+                if (value != null && segmentSpec.getComplexDimensionColumns().contains(columnName) && sqlType == DataTypes.StringType) {
+                    try {
+                        value = MAPPER.readValue(value.toString(), StructuredData.class);
+                    } catch (JsonProcessingException e) {
+                        value = null;
+                    }
+                }
+                if (value != null && field.getFieldType() == FieldType.ARRAY_OF_STRING) {
+                    ArrayData arrayData = record.getArray(field.getOrdinal());
+                    int arraySize = arrayData.numElements();
+                    List<String> valueArrayOfString = new ArrayList<>(arraySize);
+                    for (int i = 0; i < arraySize; i++) {
+                        valueArrayOfString.add(arrayData.get(i, DataTypes.StringType).toString());
+                    }
+                    value = valueArrayOfString;
+                }
+                if (value != null && field.getFieldType()== FieldType.ARRAY_OF_DOUBLE) {
+                    ArrayData arrayData = record.getArray(field.getOrdinal());
+                    int arraySize = arrayData.numElements();
+                    Double[] valueArrayOfFloat = new Double[arraySize];
+                    for (int i = 0; i < arraySize; i++) {
+                        valueArrayOfFloat[i] = (Double) arrayData.get(i, DataTypes.DoubleType);
+                    }
+                    value = valueArrayOfFloat;
+                }
+                if (value != null && field.getFieldType()== FieldType.ARRAY_OF_LONG) {
+                    ArrayData arrayData = record.getArray(field.getOrdinal());
+                    int arraySize = arrayData.numElements();
+                    Long[] valueArrayOfLong = new Long[arraySize];
+                    for (int i = 0; i < arraySize; i++) {
+                        valueArrayOfLong[i] = (Long) arrayData.get(i, DataTypes.LongType);
+                    }
+                    value = valueArrayOfLong;
                 }
                 map.put(columnName, value);
             }

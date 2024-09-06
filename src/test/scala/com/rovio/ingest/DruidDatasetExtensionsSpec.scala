@@ -27,7 +27,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 // must define classes outside of the actual test methods, otherwise spark can't find them
 case class KpiRow(date: String, country: String, dau: Integer, revenue: Double, is_segmented: Boolean)
-case class RowWithUnsupportedType(date: String, country: String, dau: Integer, labels: Array[String])
+case class RowWithUnsupportedType(date: String, country: String, dau: Integer, values: Array[Long])
 case class PartitionedRow(date: String, country: String, dau: Integer, revenue: Double, `__PARTITION_NUM__`: Integer)
 case class ExpectedRow(`__PARTITION_TIME__`: String, `__PARTITION_NUM__`: Integer, count: Integer)
 
@@ -221,7 +221,7 @@ class DruidDatasetExtensionsSpec extends AnyFlatSpec with Matchers with BeforeAn
 
   it should "exclude columns with unsupported types" in {
     val ds = Seq(RowWithUnsupportedType(
-      date="2019-10-17", country="US", dau=50, labels=Array("A", "B"))).toDS
+      date="2019-10-17", country="US", dau=50, values=Array(1L, 2L))).toDS
       .withColumn("date", 'date.cast(DataTypes.TimestampType))
     val result = ds.repartitionByDruidSegmentSize("date", "DAY", 2, excludeColumnsWithUnknownTypes = true)
 
@@ -237,7 +237,7 @@ class DruidDatasetExtensionsSpec extends AnyFlatSpec with Matchers with BeforeAn
 
   it should "throw exception from unsupported types by default" in {
     val ds = Seq(RowWithUnsupportedType(
-      date="2019-10-17", country="US", dau=50, labels=Array("A", "B"))).toDS
+      date="2019-10-17", country="US", dau=50, values=Array(1L, 2L))).toDS
       .withColumn("date", 'date.cast(DataTypes.TimestampType))
     assertThrows[IllegalArgumentException] {
       ds.repartitionByDruidSegmentSize("date", "DAY", 2)

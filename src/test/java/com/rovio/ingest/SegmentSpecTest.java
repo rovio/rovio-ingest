@@ -344,4 +344,67 @@ public class SegmentSpecTest {
         assertEquals(Granularity.fromString("DAY"), spec.getDataSchema().getGranularitySpec().getSegmentGranularity());
         assertEquals(Granularity.fromString("DAY"), spec.getDataSchema().getGranularitySpec().getQueryGranularity());
     }
+
+    @Test
+    public void shouldSupportArrayDimensions() {
+        StructType schema = new StructType()
+                .add("updateTime", DataTypes.TimestampType)
+                .add("user_id", DataTypes.StringType)
+                .add("countries", DataTypes.createArrayType(DataTypes.StringType));
+        String metricsSpec = "[]";
+        SegmentSpec spec = SegmentSpec.from("temp", "updateTime",  Collections.emptyList(), "DAY", "DAY", schema, false, metricsSpec);
+
+        assertEquals("temp", spec.getDataSchema().getDataSource());
+        assertEquals("updateTime", spec.getTimeColumn());
+        List<DimensionSchema> dimensions = spec.getDataSchema().getDimensionsSpec().getDimensions();
+        assertEquals(2, dimensions.size());
+        List<String> expected = Arrays.asList("user_id", "countries");
+        assertTrue(dimensions.stream().allMatch(d -> expected.contains(d.getName())));
+        assertTrue(dimensions.stream().anyMatch(d -> ValueType.STRING == d.getColumnType().getType() && d.getName().equals("user_id")));
+        assertTrue(dimensions.stream().anyMatch(d -> ValueType.ARRAY == d.getColumnType().getType() && d.getName().equals("countries")));
+        assertFalse(spec.getDataSchema().getGranularitySpec().isRollup());
+
+        assertEquals(Granularity.fromString("DAY"), spec.getDataSchema().getGranularitySpec().getSegmentGranularity());
+        assertEquals(Granularity.fromString("DAY"), spec.getDataSchema().getGranularitySpec().getQueryGranularity());
+    }
+
+    @Test
+    public void shouldDeserializeDimensionSpec() {
+        StructType schema = new StructType()
+                .add("__time", DataTypes.TimestampType)
+                .add("dim1", DataTypes.StringType)
+                .add("dim2", DataTypes.LongType)
+                .add("dim3", DataTypes.createArrayType(DataTypes.LongType))
+                .add("dim4", DataTypes.StringType)
+                .add("dim5", DataTypes.createArrayType(DataTypes.StringType))
+                .add("dim6", DataTypes.createArrayType(DataTypes.DoubleType));
+        String dimensionsSpec =
+                "{\"dimensions\": " +
+                "[{\"type\": \"string\", \"name\": \"dim1\" }," +
+                "{\"type\": \"long\", \"name\": \"dim2\" }," +
+                "{\"type\": \"auto\", \"name\": \"dim3\" }," +
+                "{\"type\": \"json\", \"name\": \"dim4\", \"formatVersion\": 5, \"multiValueHandling\": \"array\", \"createBitmapIndex\": true }," +
+                "{\"type\": \"string\", \"name\": \"dim5\", \"multiValueHandling\": \"array\", \"createBitmapIndex\": true }," +
+                "{\"type\": \"double\", \"name\": \"dim6\" }],\n" +
+                "\"includeAllDimensions\": false,\n" +
+                "\"useSchemaDiscovery\": false}";
+        String metricsSpec = "[" +
+                "{\n" +
+                "   \"type\": \"longSum\",\n" +
+                "   \"name\": \"metric2\",\n" +
+                "   \"fieldName\": \"dim2\",\n" +
+                "   \"expression\": null\n" +
+                "},\n" +
+                "{\n" +
+                "   \"type\": \"doubleSum\",\n" +
+                "   \"name\": \"metric6\",\n" +
+                "   \"fieldName\": \"dim6\",\n" +
+                "   \"expression\": null\n" +
+                "}\n" +
+                "]";
+        SegmentSpec spec = SegmentSpec.from("temp", "__time", Collections.singletonList("updateTime"), "DAY", "DAY", schema, false, dimensionsSpec, metricsSpec, null);
+        List<DimensionSchema> dimensions = spec.getDataSchema().getDimensionsSpec().getDimensions();
+        assertEquals(6, dimensions.size());
+    }
+
 }

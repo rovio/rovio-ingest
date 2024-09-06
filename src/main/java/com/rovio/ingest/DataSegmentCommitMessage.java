@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
+import org.apache.druid.guice.NestedDataModule;
 import org.apache.druid.jackson.DefaultObjectMapper;
 import org.apache.druid.math.expr.ExprMacroTable;
 import org.apache.druid.query.aggregation.datasketches.hll.HllSketchModule;
@@ -29,6 +30,8 @@ import org.apache.druid.query.aggregation.datasketches.theta.SketchModule;
 import org.apache.druid.query.aggregation.datasketches.tuple.ArrayOfDoublesSketchBuildComplexMetricSerde;
 import org.apache.druid.query.aggregation.datasketches.tuple.ArrayOfDoublesSketchMergeComplexMetricSerde;
 import org.apache.druid.query.aggregation.datasketches.tuple.ArrayOfDoublesSketchModule;
+import org.apache.druid.segment.DefaultColumnFormatConfig;
+import org.apache.druid.segment.nested.NestedDataComplexTypeSerde;
 import org.apache.druid.segment.serde.ComplexMetrics;
 import org.apache.druid.timeline.DataSegment;
 import org.apache.druid.timeline.partition.LinearShardSpec;
@@ -52,6 +55,7 @@ public class DataSegmentCommitMessage implements WriterCommitMessage {
                         // ExpressionMacroTable is injected in AggregatorFactories.
                         // However, ExprMacro are not actually required as the DataSource is write-only.
                         .addValue(ExprMacroTable.class, ExprMacroTable.nil())
+                        .addValue(DefaultColumnFormatConfig.class, new DefaultColumnFormatConfig(null))
                         // PruneLoadSpecHolder are injected in DataSegment.
                         .addValue(DataSegment.PruneSpecsHolder.class, DataSegment.PruneSpecsHolder.DEFAULT);
 
@@ -61,12 +65,14 @@ public class DataSegmentCommitMessage implements WriterCommitMessage {
 
         MAPPER.setTimeZone(TimeZone.getTimeZone("UTC"));
 
+        new NestedDataModule().getJacksonModules().forEach(MAPPER::registerModule);
         new SketchModule().getJacksonModules().forEach(MAPPER::registerModule);
         new HllSketchModule().getJacksonModules().forEach(MAPPER::registerModule);
         new KllSketchModule().getJacksonModules().forEach(MAPPER::registerModule);
         new DoublesSketchModule().getJacksonModules().forEach(MAPPER::registerModule);
         new ArrayOfDoublesSketchModule().getJacksonModules().forEach(MAPPER::registerModule);
 
+        NestedDataModule.registerHandlersAndSerde();
         HllSketchModule.registerSerde();
         KllSketchModule.registerSerde();
         DoublesSketchModule.registerSerde();
@@ -75,6 +81,7 @@ public class DataSegmentCommitMessage implements WriterCommitMessage {
         ComplexMetrics.registerSerde("arrayOfDoublesSketch", new ArrayOfDoublesSketchMergeComplexMetricSerde());
         ComplexMetrics.registerSerde("arrayOfDoublesSketchMerge", new ArrayOfDoublesSketchMergeComplexMetricSerde());
         ComplexMetrics.registerSerde("arrayOfDoublesSketchBuild", new ArrayOfDoublesSketchBuildComplexMetricSerde());
+        ComplexMetrics.registerSerde(NestedDataComplexTypeSerde.TYPE_NAME, NestedDataComplexTypeSerde.INSTANCE);
     }
 
 

@@ -64,8 +64,9 @@ The Dataset extension performs the following validations:
 * The Dataset has no columns with unknown types, unless `excludeColumnsWithUnknownTypes` is set to true
 
 The Dataset extension performs the following transformations:
-* Drops all columns of complex datatypes such as `StructType`, `MapType` or `ArrayType` as they
+* Drops all columns of complex datatypes such as `StructType` or `MapType` as they
 are not supported by `DruidSource`. This is only done if `excludeColumnsWithUnknownTypes` is set to true, otherwise validation has already failed.
+* `ArrayType` is supported with `StringType`, `LongType` and `DoubleType`
 * Converts `Date`/`Timestamp` type columns to `String`, except for the `time_column`
     - See [Druid Docs / Data types](https://druid.apache.org/docs/latest/querying/sql.html#standard-types)
 * Adds a new column `__PARTITION_TIME__` whose value is based on `time_column` column and the given [segment granularity](#segment-granularity)

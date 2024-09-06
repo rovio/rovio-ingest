@@ -51,8 +51,8 @@ object DruidDatasetExtensions {
    */
   @SerialVersionUID(1L)
   implicit class DruidDataset(dataset: Dataset[Row]) extends Serializable {
-    private val METRIC_TYPES = Array(FloatType, DoubleType, IntegerType, LongType, ShortType, ByteType)
-    private val DIMENSION_TYPES = Array(StringType, DateType, TimestampType, BooleanType)
+    private val METRIC_TYPES = Array(FloatType, DoubleType, IntegerType, LongType, ShortType, ByteType, ArrayType(LongType), ArrayType(DoubleType))
+    private val DIMENSION_TYPES = Array(StringType, DateType, TimestampType, BooleanType, ArrayType(StringType))
     private val log = LoggerFactory.getLogger(classOf[DruidDataset])
 
     /**
@@ -66,7 +66,7 @@ object DruidDatasetExtensions {
      * <p>
      * The method performs the following transformations:
      * <ul>
-     * <li>Drops all columns of complex datatypes such as `StructType`, `MapType` or `ArrayType` as they are not
+     * <li>Drops all columns of complex datatypes such as `StructType` or `MapType` as they are not
      * supported by `DruidSource`. This is only done if `excludeColumnsWithUnknownTypes` is set to true,
      * otherwise validation has already failed.</li>
      * <li>Adds a new column `__PARTITION_TIME__` whose value is based on `time_column` column and the given segment
