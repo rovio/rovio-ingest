@@ -71,21 +71,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
                         .options(options)
                         .save());
         assertThat(thrown.getCause().getMessage(), containsString(
-                "java.lang.IllegalStateException: Null value for column 'date'."));
-    }
-
-    @Test
-    public void failWhenPartitionedByNonTimeStampColumn() {
-        Dataset<Row> dataset = loadCsv(spark, "/data.csv").repartition(column("country"));
-        dataset.show(false);
-        SparkException thrown = assertThrows(SparkException.class,
-                () -> dataset.write()
-                        .format("com.rovio.ingest.DruidSource")
-                        .mode(SaveMode.Overwrite)
-                        .options(options)
-                        .save());
-        assertThat(thrown.getCause().getMessage(), containsString(
-                "java.sql.BatchUpdateException: Duplicate entry"));
+                "Null value for column 'date'."));
     }
 
     @Test

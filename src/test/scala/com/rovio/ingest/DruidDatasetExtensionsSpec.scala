@@ -21,7 +21,9 @@ import com.rovio.ingest.model.DbType
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Dataset, SaveMode, SparkSession}
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.junit.JUnitRunner
+import org.scalatest.flatspec.AnyFlatSpec
 
 // must define classes outside of the actual test methods, otherwise spark can't find them
 case class KpiRow(date: String, country: String, dau: Integer, revenue: Double, is_segmented: Boolean)
@@ -31,7 +33,7 @@ case class ExpectedRow(`__PARTITION_TIME__`: String, `__PARTITION_NUM__`: Intege
 
 // This is needed for mvn test. It wouldn't find this test otherwise.
 @RunWith(classOf[JUnitRunner])
-class DruidDatasetExtensionsSpec extends FlatSpec with Matchers with BeforeAndAfter with BeforeAndAfterEach {
+class DruidDatasetExtensionsSpec extends AnyFlatSpec with Matchers with BeforeAndAfter with BeforeAndAfterEach {
 
   before {
     DruidSourceBaseTest.MYSQL.start()

@@ -23,7 +23,7 @@
 
     <groupId>com.rovio.ingest</groupId>
     <artifactId>rovio-ingest</artifactId>
-    <version>1.0.7_spark_3.0.1-SNAPSHOT</version>
+    <version>1.0.7_spark_3.4.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>rovio-ingest</name>
     <description>An implementation of the DatasourceV2 interface of Apache Spark™ for writing Spark Datasets to Apache Druid™</description>
@@ -50,34 +50,30 @@
     <properties>
         <druid.version>29.0.0</druid.version>
         <mysql.connector.version>8.0.28</mysql.connector.version>
-        <postgresql.version>42.2.23</postgresql.version>
+        <postgresql.version>42.6.0</postgresql.version>
         <aws.sdk.version>1.12.129</aws.sdk.version>
         <java.version>1.8</java.version>
         <antlr4.version>4.9.3</antlr4.version>
         <jackson.version>2.14.3</jackson.version>
-        <slf4j.version>1.7.32</slf4j.version>
+        <slf4j.version>2.0.12</slf4j.version>
         <junit-jupiter.version>5.7.2</junit-jupiter.version>
         <junit.version>4.13.2</junit.version>
         <junit-platform.version>1.0.1</junit-platform.version>
         <scala.version>2.12</scala.version>
-        <scala.minor.version>10</scala.minor.version>
-        <spark.version>3.0.1</spark.version>
+        <scala.minor.version>17</scala.minor.version>
+        <spark.version>3.4.1</spark.version>
         <surefire.version>3.0.0-M5</surefire.version>
-        <testcontainers.version>1.17.6</testcontainers.version>
+        <testcontainers.version>1.19.3</testcontainers.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <log4j.version>2.18.0</log4j.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
-            <version>2.17.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>2.17.1</version>
+            <version>${log4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>
@@ -103,57 +99,57 @@
                     <artifactId>log4j</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a newer version than what spark 3.0.1 brings -->
+                    <!-- Druid library needs a newer version than what spark 3.4.1 brings -->
                     <groupId>org.roaringbitmap</groupId>
                     <artifactId>RoaringBitmap</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-annotations</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
                     <groupId>com.fasterxml.jackson.module</groupId>
                     <artifactId>jackson-module-scala_2.12</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-core</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-joda</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-guava</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
                     <groupId>com.fasterxml.jackson.jaxrs</groupId>
                     <artifactId>jackson-jaxrs-json-provider</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
                     <groupId>com.fasterxml.jackson.jaxrs</groupId>
                     <artifactId>jackson-jaxrs-smile-provider</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
                     <groupId>com.fasterxml.jackson.dataformat</groupId>
                     <artifactId>jackson-dataformat-smile</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.0.1 brings -->
+                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
                     <groupId>org.antlr</groupId>
                     <artifactId>antlr4-runtime</artifactId>
                 </exclusion>
@@ -250,13 +246,6 @@
             <artifactId>commons-compress</artifactId>
             <version>1.21</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>${junit-jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
@@ -272,7 +261,7 @@
         <dependency>
             <groupId>com.holdenkarau</groupId>
             <artifactId>spark-testing-base_${scala.version}</artifactId>
-            <version>${spark.version}_1.1.0</version>
+            <version>${spark.version}_1.4.7</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -302,6 +291,12 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit-jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
             <version>${junit-jupiter.version}</version>
             <scope>test</scope>
         </dependency>
@@ -424,6 +419,12 @@
                                 </filter>
                                 <filter>
                                     <artifact>mysql:mysql-connector-java</artifact>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                </filter>
+                                <filter>
+                                    <artifact>org.postgresql:postgresql</artifact>
                                     <includes>
                                         <include>**</include>
                                     </includes>
