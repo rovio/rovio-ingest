@@ -18,11 +18,16 @@ package com.rovio.ingest.model;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 
+import java.util.Objects;
+
 public enum FieldType {
     TIMESTAMP,
     DOUBLE,
     LONG,
-    STRING;
+    STRING,
+    ARRAY_OF_DOUBLE,
+    ARRAY_OF_LONG,
+    ARRAY_OF_STRING;
 
     public static FieldType from(DataType dataType) {
         if (isNumericType(dataType)) {
@@ -41,6 +46,18 @@ public enum FieldType {
             return STRING;
         }
 
+        if (isArrayOfNumericType(dataType)) {
+            return ARRAY_OF_LONG;
+        }
+
+        if (isArrayOfDoubleType(dataType)) {
+            return ARRAY_OF_DOUBLE;
+        }
+
+        if (isArrayOfStringType(dataType)) {
+            return ARRAY_OF_STRING;
+        }
+
         throw new IllegalArgumentException("Unsupported Type " + dataType);
     }
 
@@ -53,6 +70,22 @@ public enum FieldType {
                 || dataType == DataTypes.IntegerType
                 || dataType == DataTypes.ShortType
                 || dataType == DataTypes.ByteType;
+    }
+
+    private static boolean isArrayOfNumericType(DataType dataType) {
+        return Objects.equals(dataType, DataTypes.createArrayType(DataTypes.LongType))
+                || Objects.equals(dataType, DataTypes.createArrayType(DataTypes.IntegerType))
+                || Objects.equals(dataType, DataTypes.createArrayType(DataTypes.ShortType))
+                || Objects.equals(dataType, DataTypes.createArrayType(DataTypes.ByteType));
+    }
+
+    private static boolean isArrayOfDoubleType(DataType dataType) {
+        return Objects.equals(dataType, DataTypes.createArrayType(DataTypes.DoubleType))
+                || Objects.equals(dataType, DataTypes.createArrayType(DataTypes.FloatType));
+    }
+    private static boolean isArrayOfStringType(DataType dataType) {
+        return Objects.equals(dataType, DataTypes.createArrayType(DataTypes.StringType))
+                || Objects.equals(dataType, DataTypes.createArrayType(DataTypes.BooleanType));
     }
 
 }

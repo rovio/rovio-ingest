@@ -30,6 +30,8 @@ import org.apache.druid.java.util.common.granularity.Granularity;
 import org.apache.druid.query.aggregation.AggregatorFactory;
 import org.apache.druid.query.aggregation.DoubleSumAggregatorFactory;
 import org.apache.druid.query.aggregation.LongSumAggregatorFactory;
+import org.apache.druid.segment.AutoTypeColumnSchema;
+import org.apache.druid.segment.column.ColumnType;
 import org.apache.druid.segment.column.ValueType;
 import org.apache.druid.segment.indexing.DataSchema;
 import org.apache.druid.segment.indexing.granularity.GranularitySpec;
@@ -66,8 +68,8 @@ public class SegmentSpec implements Serializable {
     private final String dimensionsSpec;
     private final String metricsSpec;
     private final String transformSpec;
-
     private final Set<String> complexMetricColumns;
+    private final Set<String> complexDimensionColumns;
 
     private SegmentSpec(String dataSource, String timeColumn, String segmentGranularity, String queryGranularity,
                         List<Field> fields, Field partitionTime, Field partitionNum, boolean rollup,
@@ -87,6 +89,11 @@ public class SegmentSpec implements Serializable {
                 .stream(getAggregators())
                 .filter(aggregatorFactory -> aggregatorFactory.getIntermediateType().is(ValueType.COMPLEX))
                 .flatMap((AggregatorFactory aggregatorFactory) -> aggregatorFactory.requiredFields().stream())
+                .collect(Collectors.toSet());
+        this.complexDimensionColumns = getDimensionsSpec().getDimensions()
+                .stream()
+                .filter(dimensionSchema -> dimensionSchema.getColumnType() == ColumnType.NESTED_DATA)
+                .map(DimensionSchema::getName)
                 .collect(Collectors.toSet());
     }
 
@@ -127,7 +134,7 @@ public class SegmentSpec implements Serializable {
                 fields.stream().noneMatch(f -> f.getFieldType() == FieldType.TIMESTAMP && !f.getName().equals(timeColumn) && !f.getName().equals(PARTITION_TIME_COLUMN_NAME)),
                 String.format("Schema has another timestamp field other than \"%s\"", timeColumn));
 
-        Preconditions.checkArgument(fields.stream().anyMatch(f -> f.getFieldType() == FieldType.STRING),
+        Preconditions.checkArgument(fields.stream().anyMatch(f -> f.getFieldType() == FieldType.STRING || f.getFieldType() == FieldType.ARRAY_OF_STRING),
                 "Schema has no dimensions");
 
         Preconditions.checkArgument(!rollup || fields.stream().anyMatch(f -> f.getFieldType() == FieldType.LONG || f.getFieldType() == FieldType.DOUBLE),
@@ -217,6 +224,12 @@ public class SegmentSpec implements Serializable {
                     builder.add(new DoubleDimensionSchema(fieldName));
                 } else if (field.getFieldType() == FieldType.TIMESTAMP) {
                     builder.add(new LongDimensionSchema(fieldName));
+                } else if (field.getFieldType() == FieldType.ARRAY_OF_STRING) {
+                    builder.add(new AutoTypeColumnSchema(fieldName, ColumnType.STRING_ARRAY));
+                } else if (field.getFieldType() == FieldType.ARRAY_OF_DOUBLE) {
+                    builder.add(new AutoTypeColumnSchema(fieldName,  ColumnType.DOUBLE_ARRAY));
+                } else if (field.getFieldType() == FieldType.ARRAY_OF_LONG) {
+                    builder.add(new AutoTypeColumnSchema(fieldName,  ColumnType.LONG_ARRAY));
                 }
             }
         }
@@ -268,5 +281,9 @@ public class SegmentSpec implements Serializable {
 
     public Set<String> getComplexMetricColumns() {
         return complexMetricColumns;
+    }
+
+    public Set<String> getComplexDimensionColumns() {
+        return complexDimensionColumns;
     }
 }
