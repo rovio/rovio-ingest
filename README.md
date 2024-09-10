@@ -331,6 +331,22 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
    | `druid.segment_storage.hdfs.security.kerberos.principal` | Kerberos principal |
    | `druid.segment_storage.hdfs.security.kerberos.keytab` | Kerberos keytab |
 
+4. **If Deep Storage is `azure`:**
+
+   | Property | Description |
+   | --- | --- |
+   | `druid.azure.account` | Azure account |
+   | `druid.azure.key` | Azure key |
+   | `druid.azure.sharedAccessStorageToken` | Azure token (if no key) |
+   | `druid.azure.useAzureCredentialsChain` | Use DefaultAzureCredential for authentication |
+   | `druid.azure.managedIdentityClientId` | If you want to use managed identity authentication in the DefaultAzureCredential, useAzureCredentialsChain must be true. |
+   | `druid.azure.endpointSuffix` | The endpoint suffix to use. Override the default value to connect to |
+   | `druid.azure.container` | Azure container |
+   | `druid.azure.prefix` | Azure prefix |
+   | `druid.azure.protocol` | Azure protocol (http or https ) |
+   | `druid.azure.maxTries` | Max tries to connect to Azure |
+   | `druid.azure.maxListingLength` | Azure max listing length |
+
 #### Optional properties
 
 | Property | Description | Default |
@@ -342,7 +358,7 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 | `druid.exclude_dimensions` | Comma separated list of Spark input columns that have to be excluded in Druid ingestion | |
 | `druid.segment.max_rows` | Max number of rows per segment | `5000000` |
 | `druid.memory.max_rows` | Max number of rows to keep in memory in spark data writer | `75000` |
-| `druid.segment_storage.type` | Type of Deep Storage to use. Allowed values: `s3`, `local`, `hdfs`. | `s3` |
+| `druid.segment_storage.type` | Type of Deep Storage to use. Allowed values: `s3`, `local`, `hdfs`, `azure`. | `s3` |
 | `druid.segment_storage.s3.disableacl` | Whether to disable ACL in S3 config. | `false` |
 | `druid.datasource.init` | Boolean flag for (re-)initializing Druid datasource. If `true`, any pre-existing segments for the datasource is marked as unused. | `false` |
 | `druid.bitmap_factory` | Compression format for bitmap indexes. Possible values: `concise`, `roaring`. For type `roaring`, the boolean property compressRunOnSerialization is always set to `true`. `rovio-ingest` uses `concise` by default regardless of Druid library version. | `concise` |

@@ -61,6 +61,17 @@ public class WriterContext implements Serializable {
     private final String hdfsDefaultFS;
     private final String hdfsSecurityKerberosPrincipal;
     private final String hdfsSecurityKerberosKeytab;
+    private final String azureAccount;
+    private final String azureKey;
+    private final String azureSharedAccessStorageToken;
+    private final Boolean azureUseAzureCredentialsChain;
+    private final String azureContainer;
+    private final String azurePrefix;
+    private final String azureManagedIdentityClientId;
+    private final String azureProtocol;
+    private final int azureMaxTries;
+    private final int azureMaxListingLength;
+    private final String azureEndpointSuffix;
     private final String deepStorageType;
     private final boolean initDataSource;
     private final String version;
@@ -108,9 +119,20 @@ public class WriterContext implements Serializable {
         this.hdfsDefaultFS = options.getOrDefault(ConfKeys.DEEP_STORAGE_HDFS_DEFAULT_FS, null);
         this.hdfsSecurityKerberosPrincipal = options.getOrDefault(ConfKeys.DEEP_STORAGE_HDFS_SECURITY_KERBEROS_PRINCIPAL, null);
         this.hdfsSecurityKerberosKeytab = options.getOrDefault(ConfKeys.DEEP_STORAGE_HDFS_SECURITY_KERBEROS_KEYTAB, null);
+        this.azureAccount = options.getOrDefault(ConfKeys.DEEP_STORAGE_AZURE_ACCOUNT, null);
+        this.azureKey = options.getOrDefault(ConfKeys.DEEP_STORAGE_AZURE_KEY, null);
+        this.azureSharedAccessStorageToken = options.getOrDefault(ConfKeys.DEEP_STORAGE_AZURE_SHAREDACCESSSTORAGETOKEN, null);
+        this.azureUseAzureCredentialsChain = options.getBoolean(ConfKeys.DEEP_STORAGE_AZURE_USEAZURECRENDENTIALSCHAIN, false);
+        this.azureContainer = options.getOrDefault(ConfKeys.DEEP_STORAGE_AZURE_CONTAINER, null);
+        this.azurePrefix = options.getOrDefault(ConfKeys.DEEP_STORAGE_AZURE_PREFIX, "");
+        this.azureProtocol = options.getOrDefault(ConfKeys.DEEP_STORAGE_AZURE_PROTOCOL, "https");
+        this.azureMaxTries = options.getInt(ConfKeys.DEEP_STORAGE_AZURE_MAXTRIES, 3);
+        this.azureMaxListingLength = options.getInt(ConfKeys.DEEP_STORAGE_AZURE_MAXLISTINGLENGTH, 1024);
+        this.azureEndpointSuffix = options.getOrDefault(ConfKeys.DEEP_STORAGE_AZURE_ENDPOINTSUFFIX, "core.windows.net");
+        this.azureManagedIdentityClientId = options.getOrDefault(ConfKeys.DEEP_STORAGE_AZURE_MANAGEDIDENTITYCLIENTID, null);
 
         this.deepStorageType = options.getOrDefault(ConfKeys.DEEP_STORAGE_TYPE, DEFAULT_DRUID_DEEP_STORAGE_TYPE);
-        Preconditions.checkArgument(Arrays.asList("s3", "local", "hdfs").contains(this.deepStorageType),
+        Preconditions.checkArgument(Arrays.asList("s3", "local", "hdfs", "azure").contains(this.deepStorageType),
                 String.format("Invalid %s: %s", ConfKeys.DEEP_STORAGE_TYPE, this.deepStorageType));
 
         this.initDataSource = options.getBoolean(ConfKeys.DATASOURCE_INIT, false);
@@ -228,6 +250,50 @@ public class WriterContext implements Serializable {
         return hdfsSecurityKerberosKeytab;
     }
 
+    public String getAzureAccount() {
+        return azureAccount;
+    }
+
+    public String getAzureKey() {
+        return azureKey;
+    }
+
+    public String getAzureSharedAccessStorageToken() {
+        return azureSharedAccessStorageToken;
+    }
+
+    public Boolean getAzureUseAzureCredentialsChain() {
+        return azureUseAzureCredentialsChain;
+    }
+
+    public String getAzureContainer() {
+        return azureContainer;
+    }
+
+    public String getAzurePrefix() {
+        return azurePrefix;
+    }
+
+    public String getAzureProtocol() {
+        return azureProtocol;
+    }
+
+    public int getAzureMaxTries() {
+        return azureMaxTries;
+    }
+
+    public int getAzureMaxListingLength() {
+        return azureMaxListingLength;
+    }
+
+    public String getAzureEndpointSuffix() {
+        return azureEndpointSuffix;
+    }
+
+    public String getAzureManagedIdentityClientId() {
+        return azureManagedIdentityClientId;
+    }
+
     public boolean isInitDataSource() {
         return initDataSource;
     }
@@ -242,6 +308,10 @@ public class WriterContext implements Serializable {
 
     public boolean isHdfsDeepStorage() {
         return "hdfs".equals(deepStorageType);
+    }
+
+    public boolean isAzureDeepStorage() {
+        return "azure".equals(deepStorageType);
     }
 
     public boolean isRollup() {
@@ -306,5 +376,17 @@ public class WriterContext implements Serializable {
         public static final String DEEP_STORAGE_HDFS_DEFAULT_FS = "druid.segment_storage.hdfs.default.fs";
         public static final String DEEP_STORAGE_HDFS_SECURITY_KERBEROS_PRINCIPAL = "druid.segment_storage.hdfs.security.kerberos.principal";
         public static final String DEEP_STORAGE_HDFS_SECURITY_KERBEROS_KEYTAB = "druid.segment_storage.hdfs.security.kerberos.keytab";
+        // Azure config
+        public static final String DEEP_STORAGE_AZURE_ACCOUNT = "druid.azure.account";
+        public static final String DEEP_STORAGE_AZURE_KEY = "druid.azure.key";
+        public static final String DEEP_STORAGE_AZURE_SHAREDACCESSSTORAGETOKEN = "druid.azure.sharedAccessStorageToken";
+        public static final String DEEP_STORAGE_AZURE_USEAZURECRENDENTIALSCHAIN = "druid.azure.useAzureCredentialsChain";
+        public static final String DEEP_STORAGE_AZURE_CONTAINER = "druid.azure.container";
+        public static final String DEEP_STORAGE_AZURE_PREFIX = "druid.azure.prefix";
+        public static final String DEEP_STORAGE_AZURE_PROTOCOL = "druid.azure.protocol";
+        public static final String DEEP_STORAGE_AZURE_MAXTRIES = "druid.azure.maxTries";
+        public static final String DEEP_STORAGE_AZURE_MAXLISTINGLENGTH = "druid.azure.maxListingLength";
+        public static final String DEEP_STORAGE_AZURE_ENDPOINTSUFFIX = "druid.azure.endpointSuffix";
+        public static final String DEEP_STORAGE_AZURE_MANAGEDIDENTITYCLIENTID = "druid.azure.managedIdentityClientId";
     }
 }

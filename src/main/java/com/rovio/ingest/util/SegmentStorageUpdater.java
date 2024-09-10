@@ -20,11 +20,19 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.rovio.ingest.WriterContext;
+import com.rovio.ingest.util.azure.LocalAzureAccountConfig;
+import com.rovio.ingest.util.azure.LocalAzureClientFactory;
+import com.rovio.ingest.util.azure.LocalAzureCloudBlobIterableFactory;
 import org.apache.druid.segment.loading.DataSegmentKiller;
 import org.apache.druid.segment.loading.DataSegmentPusher;
 import org.apache.druid.segment.loading.LocalDataSegmentKiller;
 import org.apache.druid.segment.loading.LocalDataSegmentPusher;
 import org.apache.druid.segment.loading.LocalDataSegmentPusherConfig;
+import org.apache.druid.storage.azure.AzureDataSegmentConfig;
+import org.apache.druid.storage.azure.AzureDataSegmentKiller;
+import org.apache.druid.storage.azure.AzureDataSegmentPusher;
+import org.apache.druid.storage.azure.AzureInputDataConfig;
+import org.apache.druid.storage.azure.AzureStorage;
 import org.apache.druid.storage.hdfs.HdfsDataSegmentKiller;
 import org.apache.druid.storage.hdfs.HdfsDataSegmentPusher;
 import org.apache.druid.storage.hdfs.HdfsDataSegmentPusherConfig;
@@ -59,6 +67,30 @@ public class SegmentStorageUpdater {
                     getHdfsHadoopConfiguration(param.getHdfsCoreSitePath(), param.getHdfsHdfsSitePath(), param.getHdfsDefaultFS()),
                     MAPPER
             );
+        } else if (param.isAzureDeepStorage()) {
+            LocalAzureAccountConfig azureAccountConfig = new LocalAzureAccountConfig();
+            azureAccountConfig.setAccount(param.getAzureAccount());
+            if (param.getAzureKey() != null && !param.getAzureKey().isEmpty()) {
+                azureAccountConfig.setKey(param.getAzureKey());
+            }
+            if (param.getAzureSharedAccessStorageToken() != null && !param.getAzureSharedAccessStorageToken().isEmpty()) {
+                azureAccountConfig.setSharedAccessStorageToken(param.getAzureSharedAccessStorageToken());
+            }
+            if (param.getAzureEndpointSuffix() != null && !param.getAzureEndpointSuffix().isEmpty()) {
+                azureAccountConfig.setEndpointSuffix(param.getAzureEndpointSuffix());
+            }
+            if (param.getAzureManagedIdentityClientId() != null && !param.getAzureManagedIdentityClientId().isEmpty()) {
+                azureAccountConfig.setManagedIdentityClientId(param.getAzureManagedIdentityClientId());
+            }
+            azureAccountConfig.setUseAzureCredentialsChain(param.getAzureUseAzureCredentialsChain());
+            azureAccountConfig.setProtocol(param.getAzureProtocol());
+            azureAccountConfig.setMaxTries(param.getAzureMaxTries());
+            LocalAzureClientFactory azureClientFactory = new LocalAzureClientFactory(azureAccountConfig);
+            AzureStorage azureStorage = new AzureStorage(azureClientFactory);
+            AzureDataSegmentConfig azureDataSegmentConfig = new AzureDataSegmentConfig();
+            azureDataSegmentConfig.setContainer(param.getAzureContainer());
+            azureDataSegmentConfig.setPrefix(param.getAzurePrefix());
+            return new AzureDataSegmentPusher(azureStorage, azureAccountConfig, azureDataSegmentConfig);
         } else {
             ServerSideEncryptingAmazonS3 serverSideEncryptingAmazonS3 = getAmazonS3().get();
             S3DataSegmentPusherConfig s3Config = new S3DataSegmentPusherConfig();
@@ -84,6 +116,34 @@ public class SegmentStorageUpdater {
                             getHdfsHadoopConfiguration(param.getHdfsCoreSitePath(), param.getHdfsHdfsSitePath(), param.getHdfsDefaultFS())
                     )
             );
+        } else if (param.isAzureDeepStorage()) {
+
+            LocalAzureAccountConfig azureAccountConfig = new LocalAzureAccountConfig();
+            azureAccountConfig.setAccount(param.getAzureAccount());
+            if (param.getAzureKey() != null && !param.getAzureKey().isEmpty()) {
+                azureAccountConfig.setKey(param.getAzureKey());
+            }
+            if (param.getAzureSharedAccessStorageToken() != null && !param.getAzureSharedAccessStorageToken().isEmpty()) {
+                azureAccountConfig.setSharedAccessStorageToken(param.getAzureSharedAccessStorageToken());
+            }
+            if (param.getAzureEndpointSuffix() != null && !param.getAzureEndpointSuffix().isEmpty()) {
+                azureAccountConfig.setEndpointSuffix(param.getAzureEndpointSuffix());
+            }
+            if (param.getAzureManagedIdentityClientId() != null && !param.getAzureManagedIdentityClientId().isEmpty()) {
+                azureAccountConfig.setManagedIdentityClientId(param.getAzureManagedIdentityClientId());
+            }
+            azureAccountConfig.setUseAzureCredentialsChain(param.getAzureUseAzureCredentialsChain());
+            azureAccountConfig.setProtocol(param.getAzureProtocol());
+            azureAccountConfig.setMaxTries(param.getAzureMaxTries());
+            LocalAzureClientFactory azureClientFactory = new LocalAzureClientFactory(azureAccountConfig);
+            AzureStorage azureStorage = new AzureStorage(azureClientFactory);
+            AzureDataSegmentConfig azureDataSegmentConfig = new AzureDataSegmentConfig();
+            azureDataSegmentConfig.setContainer(param.getAzureContainer());
+            azureDataSegmentConfig.setPrefix(param.getAzurePrefix());
+            AzureInputDataConfig azureInputDataConfig = new AzureInputDataConfig();
+            azureInputDataConfig.setMaxListingLength(param.getAzureMaxListingLength());
+            LocalAzureCloudBlobIterableFactory azureFactory = new LocalAzureCloudBlobIterableFactory();
+            return new AzureDataSegmentKiller(azureDataSegmentConfig, azureInputDataConfig, azureAccountConfig, azureStorage, azureFactory);
         } else {
             Supplier<ServerSideEncryptingAmazonS3> serverSideEncryptingAmazonS3 = getAmazonS3();
             S3DataSegmentPusherConfig s3Config = new S3DataSegmentPusherConfig();
