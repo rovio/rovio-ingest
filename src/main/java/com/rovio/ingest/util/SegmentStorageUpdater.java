@@ -28,6 +28,8 @@ import org.apache.druid.segment.loading.LocalDataSegmentPusherConfig;
 import org.apache.druid.storage.hdfs.HdfsDataSegmentKiller;
 import org.apache.druid.storage.hdfs.HdfsDataSegmentPusher;
 import org.apache.druid.storage.hdfs.HdfsDataSegmentPusherConfig;
+import org.apache.druid.storage.hdfs.HdfsKerberosConfig;
+import org.apache.druid.storage.hdfs.HdfsStorageAuthentication;
 import org.apache.druid.storage.s3.NoopServerSideEncryption;
 import org.apache.druid.storage.s3.S3DataSegmentKiller;
 import org.apache.druid.storage.s3.S3DataSegmentPusher;
@@ -47,7 +49,16 @@ public class SegmentStorageUpdater {
         if (param.isLocalDeepStorage()) {
             return new LocalDataSegmentPusher(getLocalConfig(param.getLocalDir()));
         } else if (param.isHdfsDeepStorage()) {
-            return new HdfsDataSegmentPusher(getHdfsConfig(param.getHdfsStorageDir()), new Configuration(), MAPPER);
+            return new HdfsDataSegmentPusher(
+                    getHdfsConfig(
+                            param.getHdfsDir(),
+                            param.getHdfsSecurityKerberosPrincipal(),
+                            param.getHdfsSecurityKerberosKeytab(),
+                            getHdfsHadoopConfiguration(param.getHdfsCoreSitePath(), param.getHdfsHdfsSitePath(), param.getHdfsDefaultFS())
+                    ),
+                    getHdfsHadoopConfiguration(param.getHdfsCoreSitePath(), param.getHdfsHdfsSitePath(), param.getHdfsDefaultFS()),
+                    MAPPER
+            );
         } else {
             ServerSideEncryptingAmazonS3 serverSideEncryptingAmazonS3 = getAmazonS3().get();
             S3DataSegmentPusherConfig s3Config = new S3DataSegmentPusherConfig();
@@ -64,7 +75,15 @@ public class SegmentStorageUpdater {
         if (param.isLocalDeepStorage()) {
             return new LocalDataSegmentKiller(getLocalConfig(param.getLocalDir()));
         } else if (param.isHdfsDeepStorage()) {
-            return new HdfsDataSegmentKiller(new Configuration(), getHdfsConfig(param.getHdfsStorageDir()));
+            return new HdfsDataSegmentKiller(
+                    getHdfsHadoopConfiguration(param.getHdfsCoreSitePath(), param.getHdfsHdfsSitePath(), param.getHdfsDefaultFS()),
+                    getHdfsConfig(
+                            param.getHdfsDir(),
+                            param.getHdfsSecurityKerberosPrincipal(),
+                            param.getHdfsSecurityKerberosKeytab(),
+                            getHdfsHadoopConfiguration(param.getHdfsCoreSitePath(), param.getHdfsHdfsSitePath(), param.getHdfsDefaultFS())
+                    )
+            );
         } else {
             Supplier<ServerSideEncryptingAmazonS3> serverSideEncryptingAmazonS3 = getAmazonS3();
             S3DataSegmentPusherConfig s3Config = new S3DataSegmentPusherConfig();
@@ -92,11 +111,32 @@ public class SegmentStorageUpdater {
         }).get();
     }
 
-    private static HdfsDataSegmentPusherConfig getHdfsConfig(String hdfsStorageDir) {
+    private static HdfsDataSegmentPusherConfig getHdfsConfig(String hdfsDir, String kerberosPrincipal, String kerberosKeytab, Configuration conf) {
         return Suppliers.memoize(() -> {
-            HdfsDataSegmentPusherConfig hdfsSegmentPusherConfig = new HdfsDataSegmentPusherConfig();
-            hdfsSegmentPusherConfig.setStorageDirectory(hdfsStorageDir);
-            return hdfsSegmentPusherConfig;
+            HdfsDataSegmentPusherConfig config = new HdfsDataSegmentPusherConfig();
+            if (hdfsDir != null) {
+                config.setStorageDirectory(hdfsDir);
+            }
+            if (kerberosPrincipal != null && kerberosKeytab != null) {
+                HdfsKerberosConfig hdfsKerberosConfig = new HdfsKerberosConfig(kerberosPrincipal, kerberosKeytab);
+                HdfsStorageAuthentication hdfsAuth = new HdfsStorageAuthentication(hdfsKerberosConfig, conf);
+                hdfsAuth.authenticate();
+            }
+            return config;
+        }).get();
+    }
+
+    private static Configuration getHdfsHadoopConfiguration(String hdfsCoreSitePath, String hdfsHdfsSitePath, String defaultFS) {
+        return Suppliers.memoize(() -> {
+            if (hdfsCoreSitePath == null || hdfsHdfsSitePath == null) {
+                throw new UnsupportedOperationException("Custom hdfs site configuration is not implemented");
+            } else {
+                Configuration configuration = new Configuration(true);
+                if (defaultFS != null) {
+                    configuration.set("fs.defaultFS", defaultFS);
+                }
+                return configuration;
+            }
         }).get();
     }
 }
