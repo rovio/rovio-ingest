@@ -37,6 +37,7 @@ class DruidDatasetExtensionsAzureSpec extends AnyFlatSpec with Matchers with Bef
 
   after {
     DruidSourceBaseTest.MYSQL.stop()
+    DruidDeepStorageAzureTest.AZURE.stop()
   }
 
   // Could instead try assertSmallDataFrameEquality from
