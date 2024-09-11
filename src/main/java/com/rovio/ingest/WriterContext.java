@@ -55,6 +55,12 @@ public class WriterContext implements Serializable {
     private final String s3BaseKey;
     private final boolean s3DisableAcl;
     private final String localDir;
+    private final String hdfsDir;
+    private final String hdfsCoreSitePath;
+    private final String hdfsHdfsSitePath;
+    private final String hdfsDefaultFS;
+    private final String hdfsSecurityKerberosPrincipal;
+    private final String hdfsSecurityKerberosKeytab;
     private final String deepStorageType;
     private final boolean initDataSource;
     private final String version;
@@ -64,7 +70,6 @@ public class WriterContext implements Serializable {
     private final String dimensionsSpec;
     private final String metricsSpec;
     private final String transformSpec;
-    private String getHdfsStorageDir;
 
     private WriterContext(CaseInsensitiveStringMap options, String version) {
         this.dataSource = getOrThrow(options, ConfKeys.DATA_SOURCE);
@@ -97,7 +102,12 @@ public class WriterContext implements Serializable {
         this.s3BaseKey = options.getOrDefault(ConfKeys.DEEP_STORAGE_S3_BASE_KEY, null);
         this.s3DisableAcl = options.getBoolean(ConfKeys.DEEP_STORAGE_S3_DISABLE_ACL, false);
         this.localDir = options.getOrDefault(ConfKeys.DEEP_STORAGE_LOCAL_DIRECTORY, null);
-        this.getHdfsStorageDir = options.getOrDefault(ConfKeys.DEEP_STORAGE_HDFS_DIRECTORY, null);
+        this.hdfsDir = options.getOrDefault(ConfKeys.DEEP_STORAGE_HDFS_STORAGE_DIRECTORY, null);
+        this.hdfsCoreSitePath = options.getOrDefault(ConfKeys.DEEP_STORAGE_HDFS_CORE_SITE_PATH, null);
+        this.hdfsHdfsSitePath = options.getOrDefault(ConfKeys.DEEP_STORAGE_HDFS_HDFS_SITE_PATH, null);
+        this.hdfsDefaultFS = options.getOrDefault(ConfKeys.DEEP_STORAGE_HDFS_DEFAULT_FS, null);
+        this.hdfsSecurityKerberosPrincipal = options.getOrDefault(ConfKeys.DEEP_STORAGE_HDFS_SECURITY_KERBEROS_PRINCIPAL, null);
+        this.hdfsSecurityKerberosKeytab = options.getOrDefault(ConfKeys.DEEP_STORAGE_HDFS_SECURITY_KERBEROS_KEYTAB, null);
 
         this.deepStorageType = options.getOrDefault(ConfKeys.DEEP_STORAGE_TYPE, DEFAULT_DRUID_DEEP_STORAGE_TYPE);
         Preconditions.checkArgument(Arrays.asList("s3", "local", "hdfs").contains(this.deepStorageType),
@@ -194,8 +204,28 @@ public class WriterContext implements Serializable {
         return localDir;
     }
 
-    public String getDeepStorageType() {
-        return deepStorageType;
+    public String getHdfsDir() {
+        return hdfsDir;
+    }
+
+    public String getHdfsCoreSitePath() {
+        return hdfsCoreSitePath;
+    }
+
+    public String getHdfsHdfsSitePath() {
+        return hdfsHdfsSitePath;
+    }
+
+    public String getHdfsDefaultFS() {
+        return hdfsDefaultFS;
+    }
+
+    public String getHdfsSecurityKerberosPrincipal() {
+        return hdfsSecurityKerberosPrincipal;
+    }
+
+    public String getHdfsSecurityKerberosKeytab() {
+        return hdfsSecurityKerberosKeytab;
     }
 
     public boolean isInitDataSource() {
@@ -238,10 +268,6 @@ public class WriterContext implements Serializable {
         return transformSpec;
     }
 
-    public String getHdfsStorageDir() {
-        return getHdfsStorageDir;
-    }
-
     public static class ConfKeys {
         public static final String DATASOURCE_INIT = "druid.datasource.init";
         // Segment config
@@ -274,6 +300,11 @@ public class WriterContext implements Serializable {
         // Local config (only for testing)
         public static final String DEEP_STORAGE_LOCAL_DIRECTORY = "druid.segment_storage.local.dir";
         // HDFS config
-        public static final String DEEP_STORAGE_HDFS_DIRECTORY = "druid.segment_storage.hdfs.dir";
+        public static final String DEEP_STORAGE_HDFS_STORAGE_DIRECTORY = "druid.segment_storage.hdfs.dir";
+        public static final String DEEP_STORAGE_HDFS_CORE_SITE_PATH = "druid.segment_storage.hdfs.core.site.path";
+        public static final String DEEP_STORAGE_HDFS_HDFS_SITE_PATH = "druid.segment_storage.hdfs.hdfs.site.path";
+        public static final String DEEP_STORAGE_HDFS_DEFAULT_FS = "druid.segment_storage.hdfs.default.fs";
+        public static final String DEEP_STORAGE_HDFS_SECURITY_KERBEROS_PRINCIPAL = "druid.segment_storage.hdfs.security.kerberos.principal";
+        public static final String DEEP_STORAGE_HDFS_SECURITY_KERBEROS_KEYTAB = "druid.segment_storage.hdfs.security.kerberos.keytab";
     }
 }

@@ -314,14 +314,22 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 
     | Property | Description |
     | --- |--- |
-    | `druid.segment_storage.s3.bucket` | S3 bucket name for the Deep Storage | |
-    | `druid.segment_storage.s3.basekey` | S3 key prefix for the Deep Storage. No trailing slashes. | |
+    | `druid.segment_storage.s3.bucket` | S3 bucket name for the Deep Storage |
+    | `druid.segment_storage.s3.basekey` | S3 key prefix for the Deep Storage. No trailing slashes. |
 
 2. **If Deep Storage is `local`:**
 
     | Property | Description |
     | --- |--- |
-    | `druid.segment_storage.local.dir` | For local Deep Storage, absolute path to segment directory | |
+    | `druid.segment_storage.local.dir` | For local Deep Storage, absolute path to segment directory |
+
+3. **If Deep Storage is `hdfs`:**
+
+   | Property | Description |
+   | --- | --- |
+   | `druid.segment_storage.hdfs.dir` | For hdfs Deep Storage, absolute path to segment directory |
+   | `druid.segment_storage.hdfs.security.kerberos.principal` | Kerberos principal |
+   | `druid.segment_storage.hdfs.security.kerberos.keytab` | Kerberos keytab |
 
 #### Optional properties
 
@@ -336,7 +344,6 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 | `druid.memory.max_rows` | Max number of rows to keep in memory in spark data writer | `75000` |
 | `druid.segment_storage.type` | Type of Deep Storage to use. Allowed values: `s3`, `local`, `hdfs`. | `s3` |
 | `druid.segment_storage.s3.disableacl` | Whether to disable ACL in S3 config. | `false` |
-| `druid.segment_storage.hdfs.dir` | Hdfs segment storage location | `""` |
 | `druid.datasource.init` | Boolean flag for (re-)initializing Druid datasource. If `true`, any pre-existing segments for the datasource is marked as unused. | `false` |
 | `druid.bitmap_factory` | Compression format for bitmap indexes. Possible values: `concise`, `roaring`. For type `roaring`, the boolean property compressRunOnSerialization is always set to `true`. `rovio-ingest` uses `concise` by default regardless of Druid library version. | `concise` |
 | `druid.segment.rollup` | Whether to rollup data during ingestion | `true` |
