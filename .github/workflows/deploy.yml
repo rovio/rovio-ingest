@@ -37,9 +37,11 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.9'
       - name: Install Poetry
-        run: pip install --upgrade MarkupSafe==2.0.1 poetry-core==1.0.4 poetry==1.1.8 poetry-dynamic-versioning==0.12.7 urllib3==1.26.15
+        run: pip install --upgrade poetry==1.5.1
+      - name: Install Poetry dynamic versioning plugin
+        run: poetry self add "poetry-dynamic-versioning[plugin]"
       - name: Update apt-get
         run: sudo apt-get update
       - name: Install libkrb5-dev

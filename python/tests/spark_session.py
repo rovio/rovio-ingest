@@ -45,7 +45,7 @@ def _rovio_ingest_classpath() -> str:
 
     Note that pyspark 2.4.4 comes with spark jars with specific scala version, for example:
 
-        mleap/python/venv/lib/python3.7/site-packages/pyspark/jars/spark-core_2.11-2.4.4.jar
+        rovio-ingest/python/venv/lib/python3.9/site-packages/pyspark/jars/spark-core_2.11-2.4.4.jar
 
     Thus, pyspark is incompatible with scala 2.12 and only works with scala 2.11.
 
