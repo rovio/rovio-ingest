@@ -25,22 +25,21 @@ license = "Apache-2.0"
 authors = ["Vivek Balakrishnan <vivek.balakrishnan@rovio.com>", "Juho Autio <juho.autio@rovio.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
-pyspark = "^3.0.0"
+python = "^3.9"
+pyspark = "^3.4.1"
 
 [tool.poetry.dev-dependencies]
-pytest = "5.4.3"
-pyspark-stubs = "3.0.0.post3"
-pandas = "1.1.5"
-jupyter = "1.0.0"
-sparkmagic = "0.20.5"
-boto3 = "1.21.40"
-safety = "1.10.3"
-# Not directly depending on tornado. Should set version explicitly to fix CWE-601.
-# However, tornado requires Python 3.8+ so can't upgrade yet.
-# tornado = "^6.3.2"
-# Not directly depending on cryptography. Should set version explicitly to fix CWE-295.
-cryptography="^41.0.3"
+pytest = "8.3.3"
+pandas = ">=1.5.3,<2.0.0"
+numpy = ">=1.26.4,<2.0.0"
+jupyter = "1.1.1"
+sparkmagic = "0.21.0"
+boto3 = "1.35.19"
+safety = "3.2.7"
+# Not directly depending on tornado. Set version explicitly to fix CWE-601.
+tornado = ">=6.3.2"
+# Not directly depending on cryptography. Set version explicitly to fix CWE-295.
+cryptography=">=41.0.3"
 
 [tool.poetry-dynamic-versioning]
 enable = true

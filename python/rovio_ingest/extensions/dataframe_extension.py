@@ -53,10 +53,17 @@ class ConfKeys:
 
 def repartition_by_druid_segment_size(self, time_col_name, segment_granularity='DAY', rows_per_segment=5000000,
                                       exclude_columns_with_unknown_types=False):
-    _jdf = self.sql_ctx._sc._jvm.com.rovio.ingest.extensions.java.DruidDatasetExtensions \
+    _jdf = spark_session_or_sql_ctx(self)._sc._jvm.com.rovio.ingest.extensions.java.DruidDatasetExtensions \
         .repartitionByDruidSegmentSize(self._jdf, time_col_name, segment_granularity, rows_per_segment,
                                        exclude_columns_with_unknown_types)
-    return DataFrame(_jdf, self.sql_ctx)
+    return DataFrame(_jdf, spark_session_or_sql_ctx(self))
+
+
+def spark_session_or_sql_ctx(df: DataFrame):
+    if hasattr(df, 'sparkSession'):
+        return df.sparkSession
+    # backward compatibility for older spark versions
+    return df.sql_ctx
 
 
 def normalize_date(spark: SparkSession, value: datetime, granularity: str) -> datetime:

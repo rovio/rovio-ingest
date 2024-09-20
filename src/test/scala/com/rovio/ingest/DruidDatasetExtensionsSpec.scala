@@ -52,7 +52,7 @@ class DruidDatasetExtensionsSpec extends AnyFlatSpec with Matchers with BeforeAn
 
   lazy val spark: SparkSession = {
     SparkSession.builder()
-      .appName("Spark/MLeap Parity Tests")
+      .appName(getClass.getName)
       .config("spark.sql.session.timeZone", "UTC")
       .config("spark.driver.bindAddress", "127.0.0.1")
       .master("local[2]")
