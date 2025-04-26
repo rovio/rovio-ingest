@@ -40,6 +40,8 @@ safety = "3.2.7"
 tornado = ">=6.3.2"
 # Not directly depending on cryptography. Set version explicitly to fix CWE-295.
 cryptography=">=41.0.3"
+# Not directly depending on h11. Set version explicitly to fix CWE-444.
+h11=">=0.16.0"
 
 [tool.poetry-dynamic-versioning]
 enable = true
