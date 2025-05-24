@@ -42,6 +42,8 @@ tornado = ">=6.5"
 cryptography=">=41.0.3"
 # Not directly depending on h11. Set version explicitly to fix CWE-444.
 h11=">=0.16.0"
+# Not directly depending on setuptools. Set version explicitly to fix vulnerabilities.
+setuptools=">=78.1.1"
 
 [tool.poetry-dynamic-versioning]
 enable = true
