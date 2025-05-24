@@ -25,7 +25,8 @@ license = "Apache-2.0"
 authors = ["Vivek Balakrishnan <vivek.balakrishnan@rovio.com>", "Juho Autio <juho.autio@rovio.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+# cryptography requires Python !=3.9.0,!=3.9.1
+python = ">3.9.1,<4.0"
 pyspark = "^3.4.1"
 
 [tool.poetry.dev-dependencies]
@@ -38,12 +39,14 @@ boto3 = "1.35.19"
 safety = "3.2.7"
 # Not directly depending on tornado. Set version explicitly to fix vulnerabilities.
 tornado = ">=6.5"
-# Not directly depending on cryptography. Set version explicitly to fix CWE-295.
-cryptography=">=41.0.3"
-# Not directly depending on h11. Set version explicitly to fix CWE-444.
+# Not directly depending on cryptography. Set version explicitly to fix vulnerabilities.
+cryptography=">=44.0.1"
+# Not directly depending on h11. Set version explicitly to fix vulnerabilities.
 h11=">=0.16.0"
 # Not directly depending on setuptools. Set version explicitly to fix vulnerabilities.
 setuptools=">=78.1.1"
+# Not directly depending on jinja2. Set version explicitly to fix vulnerabilities.
+jinja2=">=3.1.6"
 
 [tool.poetry-dynamic-versioning]
 enable = true
