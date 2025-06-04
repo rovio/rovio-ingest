@@ -57,13 +57,7 @@ jobs:
         run: poetry build
         working-directory: ./python
       - name: Publish to PyPI
-        run: |
-          poetry publish -u '__token__' -p '${{ secrets.PYPI_TOKEN }}' 2>&1 | tee publish.log
-          if grep -q "400 File already exists" publish.log; then
-            echo "File already exists, skipping error."
-            exit 0
-          fi
-          exit ${PIPESTATUS[0]}
+        run: poetry publish -u '__token__' -p '${{ secrets.PYPI_TOKEN }}'
         working-directory: ./python
 
       - name: Set up Apache Maven Central
