@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rovio.ingest.model.Field;
 import com.rovio.ingest.model.FieldType;
 import com.rovio.ingest.model.SegmentSpec;
+import com.rovio.ingest.util.MetadataUpdater;
 import com.rovio.ingest.util.ReflectionUtils;
 import com.rovio.ingest.util.SegmentStorageUpdater;
 import org.apache.druid.common.config.NullHandling;
@@ -51,6 +52,7 @@ import org.apache.druid.segment.realtime.plumber.Committers;
 import org.apache.druid.segment.realtime.plumber.CustomVersioningPolicy;
 import org.apache.druid.segment.writeout.TmpFileSegmentWriteOutMediumFactory;
 import org.apache.druid.timeline.DataSegment;
+import org.apache.druid.timeline.SegmentId;
 import org.apache.druid.timeline.partition.LinearShardSpec;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.util.ArrayData;
@@ -69,10 +71,12 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
@@ -94,6 +98,9 @@ class TaskDataWriter implements DataWriter<InternalRow> {
     private final Supplier<Committer> committerSupplier;
     private final Set<DataSegment> pushedSegments;
     private final File basePersistDirectory;
+    private final WriterContext context;
+    private final MetadataUpdater metadataUpdater;
+    private final Map<Interval, VersionWithPartitionNum> intervalVersionMap;
 
     private SegmentIdWithShardSpec current;
 
@@ -102,6 +109,8 @@ class TaskDataWriter implements DataWriter<InternalRow> {
         this.segmentSpec = segmentSpec;
         this.maxRows = context.getSegmentMaxRows();
         this.dataSchema = segmentSpec.getDataSchema();
+        this.context = context;
+        this.metadataUpdater = context.isAppend() ? new MetadataUpdater(context) : null; // don't make a connection if it's overwrite (we will not need it)
 
         this.tuningConfig = getTuningConfig(context);
         DataSegmentPusher segmentPusher = SegmentStorageUpdater.createPusher(context);
@@ -115,6 +124,7 @@ class TaskDataWriter implements DataWriter<InternalRow> {
                 .build(dataSchema, tuningConfig.withBasePersistDirectory(basePersistDirectory), new FireDepartmentMetrics());
         this.committerSupplier = Committers::nil;
         this.pushedSegments = new HashSet<>();
+        this.intervalVersionMap = new HashMap<>();
         this.appenderator.startJob();
 
         try {
@@ -269,11 +279,28 @@ class TaskDataWriter implements DataWriter<InternalRow> {
     }
 
     private SegmentIdWithShardSpec newSegmentId(Interval interval, int partitionNum) {
+        VersionWithPartitionNum versionWithPartitionNum;
+        if (context.isAppend()) {
+            versionWithPartitionNum = intervalVersionMap.computeIfAbsent(interval, (k) -> {
+                return metadataUpdater.findUsedSegments(dataSchema.getDataSource(), interval).stream()
+                        .map(s -> SegmentId.tryParse(dataSchema.getDataSource(), s))
+                        .filter(Objects::nonNull)
+                        .max(Comparator.comparing(SegmentId::getPartitionNum))
+                        .map(s -> new VersionWithPartitionNum(s.getVersion(),
+                                Math.max(context.getPartitionNumStart(), s.getPartitionNum() + 1)))
+                        .orElseGet(() -> new VersionWithPartitionNum(tuningConfig
+                                .getVersioningPolicy().getVersion(interval), context.getPartitionNumStart()));
+            });
+        } else {
+            versionWithPartitionNum = new VersionWithPartitionNum(
+                    tuningConfig.getVersioningPolicy().getVersion(interval), context.getPartitionNumStart());
+        }
+
         return new SegmentIdWithShardSpec(
                 dataSchema.getDataSource(),
                 interval,
-                tuningConfig.getVersioningPolicy().getVersion(interval),
-                new LinearShardSpec(partitionNum)
+                versionWithPartitionNum.version,
+                new LinearShardSpec(versionWithPartitionNum.maxPartitionNum + partitionNum)
         );
     }
 
@@ -337,6 +364,16 @@ class TaskDataWriter implements DataWriter<InternalRow> {
     public void close() throws IOException {
         if (this.basePersistDirectory != null) {
             FileUtils.deleteDirectory(basePersistDirectory);
+        }
+    }
+
+    private static final class VersionWithPartitionNum {
+        private final String version;
+        private final int maxPartitionNum;
+
+        private VersionWithPartitionNum(String version, int maxPartitionNum) {
+            this.version = version;
+            this.maxPartitionNum = maxPartitionNum;
         }
     }
 }

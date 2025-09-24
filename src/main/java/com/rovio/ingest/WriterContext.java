@@ -16,6 +16,7 @@
 package com.rovio.ingest;
 
 import com.google.common.base.Preconditions;
+import org.apache.druid.java.util.common.DateTimes;
 import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 
 import java.io.Serializable;
@@ -78,9 +79,11 @@ public class WriterContext implements Serializable {
     private final boolean rollup;
     private final boolean useDefaultValueForNull;
     private final boolean useThreeValueLogicForNativeFilters;
+    private final int partitionNumStart;
     private final String dimensionsSpec;
     private final String metricsSpec;
     private final String transformSpec;
+    private final boolean isAppend;
 
     private WriterContext(CaseInsensitiveStringMap options, String version) {
         this.dataSource = getOrThrow(options, ConfKeys.DATA_SOURCE);
@@ -143,11 +146,83 @@ public class WriterContext implements Serializable {
         this.metricsSpec = options.getOrDefault(ConfKeys.METRICS_SPEC, null);
         this.transformSpec = options.getOrDefault(ConfKeys.TRANSFORM_SPEC, null);
 
-        this.version = version;
+        this.version = options.getOrDefault(ConfKeys.SEGMENT_VERSION, version);
+        try {
+            DateTimes.of(this.version);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(format("\"%s\" should be timestamp in ISO8601 format " +
+                                                      "(yyyy-MM-ddTHH:mm:ss.SSSZZ)", ConfKeys.SEGMENT_VERSION));
+        }
+
+        this.partitionNumStart = options.getInt(ConfKeys.PARTITION_NUM_START, 0);
+        if (this.partitionNumStart < 0) {
+            throw new IllegalArgumentException(format("\"%s\" should be >= 0", ConfKeys.PARTITION_NUM_START));
+        }
+
+        this.isAppend = true;
+    }
+
+    private WriterContext(WriterContext context) {
+        this.dataSource = context.dataSource;
+        this.timeColumn = context.timeColumn;
+        this.segmentGranularity = context.segmentGranularity;
+        this.queryGranularity = context.queryGranularity;
+        this.bitmapFactory = context.bitmapFactory;
+        this.excludedDimensions = context.excludedDimensions;
+        this.segmentMaxRows = context.segmentMaxRows;
+        this.maxRowsInMemory = context.maxRowsInMemory;
+
+        this.metadataDbType = context.metadataDbType;
+        this.metadataDbUri = context.metadataDbUri;
+        this.metadataDbUser = context.metadataDbUser;
+        this.metadataDbPass = context.metadataDbPass;
+        this.metadataDbTableBase = context.metadataDbTableBase;
+
+        this.s3Bucket = context.s3Bucket;
+        this.s3BaseKey = context.s3BaseKey;
+        this.s3DisableAcl = context.s3DisableAcl;
+        this.localDir = context.localDir;
+        this.hdfsDir = context.hdfsDir;
+        this.hdfsCoreSitePath = context.hdfsCoreSitePath;
+        this.hdfsHdfsSitePath = context.hdfsHdfsSitePath;
+        this.hdfsDefaultFS = context.hdfsDefaultFS;
+        this.hdfsSecurityKerberosPrincipal = context.hdfsSecurityKerberosPrincipal;
+        this.hdfsSecurityKerberosKeytab = context.hdfsSecurityKerberosKeytab;
+        this.azureAccount = context.azureAccount;
+        this.azureKey = context.azureKey;
+        this.azureSharedAccessStorageToken = context.azureSharedAccessStorageToken;
+        this.azureUseAzureCredentialsChain = context.azureUseAzureCredentialsChain;
+        this.azureContainer = context.azureContainer;
+        this.azurePrefix = context.azurePrefix;
+        this.azureProtocol = context.azureProtocol;
+        this.azureMaxTries = context.azureMaxTries;
+        this.azureMaxListingLength = context.azureMaxListingLength;
+        this.azureEndpointSuffix = context.azureEndpointSuffix;
+        this.azureManagedIdentityClientId = context.azureManagedIdentityClientId;
+
+        this.deepStorageType = context.deepStorageType;
+
+        this.initDataSource = context.initDataSource;
+        this.rollup = context.rollup;
+        this.useDefaultValueForNull = context.useDefaultValueForNull;
+        this.useThreeValueLogicForNativeFilters = context.useThreeValueLogicForNativeFilters;
+        this.dimensionsSpec = context.dimensionsSpec;
+        this.metricsSpec = context.metricsSpec;
+        this.transformSpec = context.transformSpec;
+
+        this.version = context.version;
+
+        this.partitionNumStart = context.partitionNumStart;
+
+        this.isAppend = false;
     }
 
     public static WriterContext from(CaseInsensitiveStringMap options, String version) {
         return new WriterContext(options, version);
+    }
+
+    public static WriterContext copyForOverwrite(WriterContext context) {
+        return new WriterContext(context);
     }
 
     private static String getOrThrow(CaseInsensitiveStringMap options, String key) {
@@ -155,7 +230,11 @@ public class WriterContext implements Serializable {
             return options.get(key);
         }
 
-        throw new IllegalArgumentException(format("Missing mandatory \"%s\" option", key));
+        throw missingKeyError(key);
+    }
+
+    private static IllegalArgumentException missingKeyError(String key) {
+        return new IllegalArgumentException(format("Missing mandatory \"%s\" option", key));
     }
 
     public String getDataSource() {
@@ -326,6 +405,10 @@ public class WriterContext implements Serializable {
         return useThreeValueLogicForNativeFilters;
     }
 
+    public int getPartitionNumStart() {
+        return partitionNumStart;
+    }
+
     public String getDimensionsSpec() {
         return dimensionsSpec;
     }
@@ -336,6 +419,10 @@ public class WriterContext implements Serializable {
 
     public String getTransformSpec() {
         return transformSpec;
+    }
+
+    public boolean isAppend() {
+        return isAppend;
     }
 
     public static class ConfKeys {
@@ -355,6 +442,8 @@ public class WriterContext implements Serializable {
         public static final String SEGMENT_ROLLUP = "druid.segment.rollup";
         public static final String USE_DEFAULT_VALUES_FOR_NULL = "druid.use_default_values_for_null";
         public static final String USE_THREE_VALUE_LOGIC_FOR_NATIVE_FILTERS = "druid.use_three_value_logic_for_native_filters";
+        public static final String SEGMENT_VERSION = "druid.segment_version";
+        public static final String PARTITION_NUM_START = "druid.partition_num_start";
         // Metadata config
         public static final String METADATA_DB_TYPE = "druid.metastore.db.type";
         public static final String METADATA_DB_URI = "druid.metastore.db.uri";

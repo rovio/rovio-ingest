@@ -24,6 +24,7 @@ import org.joda.time.DateTimeUtils;
 import org.joda.time.Interval;
 import org.joda.time.chrono.ISOChronology;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -52,7 +53,7 @@ import static com.rovio.ingest.DruidSourceBaseTest.getPostgreSQLContainer;
 import static com.rovio.ingest.DruidSourceBaseTest.prepareDatabase;
 import static com.rovio.ingest.DruidSourceBaseTest.segmentsTable;
 import static com.rovio.ingest.DruidSourceBaseTest.setUpDb;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Testcontainers
 class MetadataUpdaterTest {
@@ -92,17 +93,16 @@ class MetadataUpdaterTest {
         MetadataUpdater updater = new MetadataUpdater(WriterContext.from(new CaseInsensitiveStringMap(
                 getDataSourceOptions(jdbc)), version));
 
-        List<DataSegment> segments = Arrays.asList(
-                DataSegment.builder()
-                        .dataSource(DATA_SOURCE)
-                        .loadSpec(ImmutableMap.of("type", "local", "path", "tmp/2019-10-17T00:00:00.000Z_2019-10-18T00:00:00.000Z/2019-10-01T20:29:31.384Z/0/index.zip"))
-                        .shardSpec(new LinearShardSpec(0))
-                        .size(2218)
-                        .binaryVersion(9)
-                        .interval(interval)
-                        .version(version)
-                        .build());
-        updater.publishSegments(segments);
+        DataSegment segment = DataSegment.builder()
+                .dataSource(DATA_SOURCE)
+                .loadSpec(ImmutableMap.of("type", "local", "path", "tmp/2019-10-17T00:00:00.000Z_2019-10-18T00:00:00.000Z/2019-10-01T20:29:31.384Z/0/index.zip"))
+                .shardSpec(new LinearShardSpec(0))
+                .size(2218)
+                .binaryVersion(9)
+                .interval(interval)
+                .version(version)
+                .build();
+        updater.publishSegments(Arrays.asList(segment));
 
         List<Map<String, Object>> result = DBI.open(getConnectionString(jdbc), dbUser, dbPass)
                 .createQuery("select * from " + segmentsTable).list();
@@ -114,6 +114,31 @@ class MetadataUpdaterTest {
         assertEquals("2019-10-18T00:00:00.000Z", row.get("end"));
         assertEquals("2019-10-01T20:29:31.384Z", row.get("created_date"));
         assertEquals("2019-10-01T20:29:31.384Z", row.get("version"));
+        assertEquals(true, row.get("used"));
+
+        updater.publishSegments(Arrays.asList(DataSegment.builder(segment)
+                .shardSpec(new LinearShardSpec(100))
+                .build()));
+
+        result = DBI.open(getConnectionString(jdbc), dbUser, dbPass)
+                .createQuery("select * from " + segmentsTable + " order by id").list();
+        row = result.get(0);
+        assertEquals(true, row.get("used"));
+
+        row = result.get(1);
+        assertEquals("temp", row.get("datasource"));
+        assertEquals("2019-10-16T00:00:00.000Z", row.get("start"));
+        assertEquals(true, row.get("partitioned"));
+        assertEquals("temp_2019-10-16T00:00:00.000Z_2019-10-18T00:00:00.000Z_2019-10-01T20:29:31.384Z_100", row.get("id"));
+        assertEquals("2019-10-18T00:00:00.000Z", row.get("end"));
+        assertEquals("2019-10-01T20:29:31.384Z", row.get("created_date"));
+        assertEquals("2019-10-01T20:29:31.384Z", row.get("version"));
+        assertEquals(true, row.get("used"));
+
+        List<String> segments = updater.findUsedSegments(DATA_SOURCE, interval);
+        Assertions.assertEquals(2, segments.size());
+        Assertions.assertEquals("temp_2019-10-16T00:00:00.000Z_2019-10-18T00:00:00.000Z_2019-10-01T20:29:31.384Z", segments.get(0));
+        Assertions.assertEquals("temp_2019-10-16T00:00:00.000Z_2019-10-18T00:00:00.000Z_2019-10-01T20:29:31.384Z_100", segments.get(1));
     }
 
 }

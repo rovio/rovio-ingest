@@ -366,6 +366,8 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 | `druid.segment.rollup` | Whether to rollup data during ingestion. Enabling this requires that there be at least one numeric input column. | `true` |
 | `druid.use_default_values_for_null` | Whether to use default values for nulls. See [SQL compatible null handling](https://druid.apache.org/docs/latest/querying/sql-data-types/#legacy-null-handling-mode) for details. | `true` |
 | `druid.use_three_value_logic_for_native_filters` | Whether to use SQL compatible three-value logic when processing native Druid filters. See [SQL compatible null handling](https://druid.apache.org/docs/latest/configuration/#sql-compatible-null-handling) for details. | `true` |
+| `druid.segment_version` | Segment version. Applicable for `SaveMode.Overwrite` and for `SaveMode.Append` only if added segments will be first within particular interval. Should be in ISO8601 format. Do not specify to leave version auto generated. | |
+| `druid.partition_num_start` | Partition num to add to partition num from dataset. If set for `SaveMode.Overwrite`, given number will be added to all partition nums. If set for `SaveMode.Append`, `max("given number", "max existing partition num + 1")` will be added to all partition nums. Must be a positive integer or zero |  `0`  |
 | `druid.dimensions_spec` | List of dimensions provided as json string, when not provided defaults to all non metric/non time_column fields. See [DimensionsSpec](https://druid.apache.org/docs/latest/ingestion/index.html#dimensionsspec) for details | |
 | `druid.metrics_spec` | List of aggregators to apply at ingestion time as a json array string. Possible aggregators: [metricsSpec in Druid Docs](https://druid.apache.org/docs/latest/ingestion/ingestion-spec.html#metricsspec). When not provided, defaults to using `longSum` or `doubleSum` for all numeric columns. [Datasketches](https://druid.apache.org/docs/latest/development/extensions-core/datasketches-extension.html) are supported only with this config, see [datasketches notebook](python/notebooks/druid_sketch_ingestion_test.ipynb). See also: [No-Code wrapper script](#no-code-wrapper-script). | |
 | `druid.transform_spec` | List of transformations provided as json string, when not provided defaults to no transformations. See [TransformSpec](https://druid.apache.org/docs/latest/ingestion/index.html#transformspec) for details | |
@@ -373,7 +375,7 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 ## Limitations
 
 `DruidSource` is a write-only DataSource and supports only:
-- `overwrite` as Spark write mode
+- `overwrite` or `append` as Spark write mode
 - `S3` as Druid Deep Storage
     - Also `local` Deep Storage, but it's only useful for testing
 - `MySQL` or `PostgreSQL` as Druid Metadata Storage
