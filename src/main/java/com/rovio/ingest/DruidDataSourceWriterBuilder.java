@@ -36,6 +36,11 @@ public class DruidDataSourceWriterBuilder implements WriteBuilder, SupportsTrunc
 
   @Override
   public WriteBuilder truncate() {
-    return this;
+    return new WriteBuilder() {
+      @Override
+      public BatchWrite buildForBatch() {
+        return new DruidDataSourceWriter(schema, WriterContext.copyForOverwrite(param));
+      }
+    };
   }
 }

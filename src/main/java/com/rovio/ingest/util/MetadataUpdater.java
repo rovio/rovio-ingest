@@ -31,6 +31,7 @@ import org.apache.druid.metadata.storage.postgresql.PostgreSQLConnector;
 import org.apache.druid.metadata.storage.postgresql.PostgreSQLConnectorConfig;
 import org.apache.druid.metadata.storage.postgresql.PostgreSQLTablesConfig;
 import org.apache.druid.timeline.DataSegment;
+import org.joda.time.Interval;
 import org.skife.jdbi.v2.PreparedBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,9 @@ public class MetadataUpdater {
 
     private static final String SELECT_UNUSED_OLD_SEGMENTS =
             "SELECT id FROM %1$s WHERE dataSource = :dataSource AND version < :version AND used = true AND id NOT IN (:ids)";
+    private static final String SELECT_USED_SEGMENT_IDS_BY_INTERVAL =
+            "SELECT id FROM %1$s WHERE dataSource = :dataSource AND start = :start AND %2$send%2$s = :end AND used = true " +
+                    "AND version = (SELECT MAX(version) FROM %1$s WHERE dataSource = :dataSource AND start = :start AND %2$send%2$s = :end AND used = true)";
     private static final String MARK_SEGMENT_AS_UNUSED_BY_ID =
             "UPDATE %1$s SET used=false WHERE id = :id";
 
@@ -165,5 +169,18 @@ public class MetadataUpdater {
             });
 
         }
+    }
+
+    public List<String> findUsedSegments(String dataSource, Interval interval) {
+        return sqlConnector.getDBI().withHandle(handle -> {
+            return handle.createQuery(String.format(SELECT_USED_SEGMENT_IDS_BY_INTERVAL, segmentsTable, sqlConnector.getQuoteString()))
+                    .bind("dataSource", dataSource)
+                    .bind("start", interval.getStart().toString())
+                    .bind("end", interval.getEnd().toString())
+                    .list()
+                    .stream()
+                    .map(m -> m.get("id").toString())
+                    .collect(Collectors.toList());
+        });
     }
 }

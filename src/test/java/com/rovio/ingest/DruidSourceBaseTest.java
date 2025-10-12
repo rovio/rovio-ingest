@@ -34,6 +34,7 @@ import org.apache.druid.segment.column.ColumnConfig;
 import org.apache.druid.segment.realtime.firehose.IngestSegmentFirehose;
 import org.apache.druid.segment.realtime.firehose.WindowedStorageAdapter;
 import org.apache.druid.segment.transform.TransformSpec;
+import org.apache.druid.timeline.SegmentId;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -64,8 +65,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static com.rovio.ingest.DataSegmentCommitMessage.MAPPER;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
@@ -251,15 +254,16 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
         }
     }
 
-    static void verifySegmentTable(Interval interval, String version, boolean used, int expectedRowCount) {
-        String sql = "SELECT count(id) as c from %1s" +
+    static List<SegmentId> verifySegmentTable(Interval interval, String version, boolean used, int expectedRowCount) {
+        String sql = "SELECT id as id from %1s" +
                 " where dataSource = :dataSource" +
                 " and start < :end" +
                 " and \"end\" >= :start" +
                 " and version = :version" +
-                " and used = :used";
+                " and used = :used" +
+                " order by id";
 
-        long rowCount = (long) DBI
+        List<SegmentId> segments = DBI
                 .open(getConnectionString(MYSQL), dbUser, dbPass)
                 .createQuery(String.format(sql, segmentsTable))
                 .bind("dataSource", DATA_SOURCE)
@@ -267,9 +271,13 @@ public class DruidSourceBaseTest extends SharedJavaSparkContext {
                 .bind("end", interval.getEnd().toString())
                 .bind("version", version)
                 .bind("used", used)
-                .first().get("c");
+                .list()
+                .stream()
+                .map(r -> SegmentId.tryParse(DATA_SOURCE, String.valueOf(r.get("id"))))
+                .collect(Collectors.toList());
 
-        assertEquals(expectedRowCount, rowCount);
+        assertEquals(expectedRowCount, segments.size());
+        return segments;
     }
 
   protected Table<Integer, ImmutableMap<String, Object>, ImmutableMap<String, Object>> readSegmentData(Path root,
