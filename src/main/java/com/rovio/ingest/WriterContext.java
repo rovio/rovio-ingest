@@ -159,6 +159,8 @@ public class WriterContext implements Serializable {
             throw new IllegalArgumentException(format("\"%s\" should be >= 0", ConfKeys.PARTITION_NUM_START));
         }
 
+        // When the WriteBuilder is initially created, we don't know yet will truncate be enabled or not
+        // Default behavior is to not truncate
         this.isAppend = true;
     }
 
@@ -214,6 +216,7 @@ public class WriterContext implements Serializable {
 
         this.partitionNumStart = context.partitionNumStart;
 
+        // When using this constructor version we already know that we should truncate, thus set this flag explicitly
         this.isAppend = false;
     }
 

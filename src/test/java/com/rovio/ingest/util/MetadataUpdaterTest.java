@@ -24,12 +24,12 @@ import org.joda.time.DateTimeUtils;
 import org.joda.time.Interval;
 import org.joda.time.chrono.ISOChronology;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.skife.jdbi.v2.DBI;
+import org.skife.jdbi.v2.Handle;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -38,7 +38,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
 import java.sql.SQLException;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -102,43 +102,45 @@ class MetadataUpdaterTest {
                 .interval(interval)
                 .version(version)
                 .build();
-        updater.publishSegments(Arrays.asList(segment));
+        updater.publishSegments(Collections.singletonList(segment));
 
-        List<Map<String, Object>> result = DBI.open(getConnectionString(jdbc), dbUser, dbPass)
-                .createQuery("select * from " + segmentsTable).list();
-        Map<String, Object> row = result.get(0);
-        assertEquals("temp", row.get("datasource"));
-        assertEquals("2019-10-16T00:00:00.000Z", row.get("start"));
-        assertEquals(true, row.get("partitioned"));
-        assertEquals("temp_2019-10-16T00:00:00.000Z_2019-10-18T00:00:00.000Z_2019-10-01T20:29:31.384Z", row.get("id"));
-        assertEquals("2019-10-18T00:00:00.000Z", row.get("end"));
-        assertEquals("2019-10-01T20:29:31.384Z", row.get("created_date"));
-        assertEquals("2019-10-01T20:29:31.384Z", row.get("version"));
-        assertEquals(true, row.get("used"));
+        try (Handle handle = DBI.open(getConnectionString(jdbc), dbUser, dbPass)) {
+            List<Map<String, Object>> result = handle.createQuery("select * from " + segmentsTable).list();
+            Map<String, Object> row = result.get(0);
+            assertEquals("temp", row.get("datasource"));
+            assertEquals("2019-10-16T00:00:00.000Z", row.get("start"));
+            assertEquals(true, row.get("partitioned"));
+            assertEquals("temp_2019-10-16T00:00:00.000Z_2019-10-18T00:00:00.000Z_2019-10-01T20:29:31.384Z", row.get("id"));
+            assertEquals("2019-10-18T00:00:00.000Z", row.get("end"));
+            assertEquals("2019-10-01T20:29:31.384Z", row.get("created_date"));
+            assertEquals("2019-10-01T20:29:31.384Z", row.get("version"));
+            assertEquals(true, row.get("used"));
+        }
 
-        updater.publishSegments(Arrays.asList(DataSegment.builder(segment)
+        updater.publishSegments(Collections.singletonList(DataSegment.builder(segment)
                 .shardSpec(new LinearShardSpec(100))
                 .build()));
 
-        result = DBI.open(getConnectionString(jdbc), dbUser, dbPass)
-                .createQuery("select * from " + segmentsTable + " order by id").list();
-        row = result.get(0);
-        assertEquals(true, row.get("used"));
+        try (Handle handle = DBI.open(getConnectionString(jdbc), dbUser, dbPass)) {
+            List<Map<String, Object>> result = handle.createQuery("select * from " + segmentsTable + " order by id").list();
+            Map<String, Object> row = result.get(0);
+            assertEquals(true, row.get("used"));
 
-        row = result.get(1);
-        assertEquals("temp", row.get("datasource"));
-        assertEquals("2019-10-16T00:00:00.000Z", row.get("start"));
-        assertEquals(true, row.get("partitioned"));
-        assertEquals("temp_2019-10-16T00:00:00.000Z_2019-10-18T00:00:00.000Z_2019-10-01T20:29:31.384Z_100", row.get("id"));
-        assertEquals("2019-10-18T00:00:00.000Z", row.get("end"));
-        assertEquals("2019-10-01T20:29:31.384Z", row.get("created_date"));
-        assertEquals("2019-10-01T20:29:31.384Z", row.get("version"));
-        assertEquals(true, row.get("used"));
+            row = result.get(1);
+            assertEquals("temp", row.get("datasource"));
+            assertEquals("2019-10-16T00:00:00.000Z", row.get("start"));
+            assertEquals(true, row.get("partitioned"));
+            assertEquals("temp_2019-10-16T00:00:00.000Z_2019-10-18T00:00:00.000Z_2019-10-01T20:29:31.384Z_100", row.get("id"));
+            assertEquals("2019-10-18T00:00:00.000Z", row.get("end"));
+            assertEquals("2019-10-01T20:29:31.384Z", row.get("created_date"));
+            assertEquals("2019-10-01T20:29:31.384Z", row.get("version"));
+            assertEquals(true, row.get("used"));
+        }
 
         List<String> segments = updater.findUsedSegments(DATA_SOURCE, interval);
-        Assertions.assertEquals(2, segments.size());
-        Assertions.assertEquals("temp_2019-10-16T00:00:00.000Z_2019-10-18T00:00:00.000Z_2019-10-01T20:29:31.384Z", segments.get(0));
-        Assertions.assertEquals("temp_2019-10-16T00:00:00.000Z_2019-10-18T00:00:00.000Z_2019-10-01T20:29:31.384Z_100", segments.get(1));
+        assertEquals(2, segments.size());
+        assertEquals("temp_2019-10-16T00:00:00.000Z_2019-10-18T00:00:00.000Z_2019-10-01T20:29:31.384Z", segments.get(0));
+        assertEquals("temp_2019-10-16T00:00:00.000Z_2019-10-18T00:00:00.000Z_2019-10-01T20:29:31.384Z_100", segments.get(1));
     }
 
 }

@@ -73,7 +73,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
                         .options(options)
                         .save());
 
-        assertThat(thrown.getMessage(), containsString("Init database with Append write mode is not supported"));
+        assertThat(thrown.getMessage(), containsString("Initializing datasource with append write mode is not supported"));
     }
 
     @Test
@@ -160,7 +160,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
     }
 
     @Test
-    public void passWhenPartitionedByTimeWithAppendWriteMode() throws IOException {
+    public void passWhenPartitionedByTimeWithAppendWriteModeAndExplicitSegmentVersionParam() throws IOException {
         Dataset<Row> dataset = loadCsv(spark, "/data.csv");
         dataset = dataset.repartition(column("date"));
         dataset.show(false);
@@ -254,7 +254,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
     }
 
     @Test
-    public void passWhenPartitionedByDate() throws IOException {
+    public void passWhenPartitionedByDateWithOverwriteWriteModeAndExplicitSegmentVersionParam() throws IOException {
         Dataset<Row> dataset = loadCsv(spark, "/data.csv")
                 // Convert TimestampType -> DateType
                 .withColumn("date", column("date").cast(DataTypes.DateType));

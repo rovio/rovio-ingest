@@ -41,7 +41,7 @@ class DruidDataSourceWriter implements BatchWrite {
     DruidDataSourceWriter(StructType schema, WriterContext param) {
         if (param.isInitDataSource() && param.isAppend()) {
             // in append mode we don't know all "active" segments, thus can't properly mark other segments as unused
-            throw new IllegalStateException("Init database with Append write mode is not supported");
+            throw new IllegalStateException("Initializing datasource with append write mode is not supported");
         }
         this.param = param;
         this.segmentSpec = SegmentSpec.from(param.getDataSource(),param.getTimeColumn(), param.getExcludedDimensions(),
