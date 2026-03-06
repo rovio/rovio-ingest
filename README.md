@@ -36,8 +36,9 @@ Overview diagram:
 ## Software requirements
 
 rovio-ingest requires
-* Apache Spark 3* 
+* Apache Spark 3*
 * JDK8 (8u92+ or later).
+* Python >=3.11 (for the Python package). Note: Spark 3.x may not work with Python >3.12.
 * Linux or MacOS.
 * Git repo must be cloned under a path that doesn't have spaces.
 
@@ -401,17 +402,15 @@ To run tests
 
 #### Python
 
-Python code is managed by [poetry](https://python-poetry.org/).
-
-If using Apple Silicon, enable Rosetta emulation for the following to work.
+Python code is managed by [uv](https://docs.astral.sh/uv/).
 
 To create the venv with required modules, cd to the `python` subfolder and run
 
-    poetry install
+    uv sync
 
 To run tests
 
-    poetry run pytest
+    uv run pytest
 
 ### Building
 
@@ -438,11 +437,10 @@ To build a zip that is suitable for passing to spark with `--py-files` or `spark
       && zip --exclude='*.pyc' --exclude='*__pycache__*' --exclude='*~' --exclude='.pytest_cache' \
         -FSr ../target/rovio_ingest.zip rovio_ingest ; cd ..
 
-To build a wheel that can be installed with pip – typically before spark session creation
-(requires [poetry](https://python-poetry.org/) installation):
+To build a wheel that can be installed with pip – typically before spark session creation:
 
     cd python
-    poetry build
+    uv build
 
 ## Troubleshooting
 

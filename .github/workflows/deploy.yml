@@ -8,7 +8,7 @@ on:
   push:
     branches:
       - main
-  # poetry-dynamic-versioning gets the version from release tag.
+  # uv-dynamic-versioning gets the version from release tag.
   # that's why the same steps work for pushes to main & releases.
   release:
     # without this a new release tag triggers 3 builds instead of 1
@@ -23,7 +23,7 @@ jobs:
         run: echo "SPARK_LOCAL_IP=localhost" >> $GITHUB_ENV
       - uses: actions/checkout@v2
         with:
-          # poetry-dynamic-versioning needs the full history. latest commit is not enough.
+          # uv-dynamic-versioning needs the full history. latest commit is not enough.
           fetch-depth: '0'
 
       - name: Set up JDK 8
@@ -37,27 +37,25 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.9'
-      - name: Install Poetry
-        run: pip install --upgrade poetry==1.5.1
-      - name: Install Poetry dynamic versioning plugin
-        run: poetry self add "poetry-dynamic-versioning[plugin]"
+          python-version: '3.12'
+      - name: Install uv
+        run: pip install uv==0.10.8
       - name: Update apt-get
         run: sudo apt-get update
       - name: Install libkrb5-dev
         run: sudo apt-get install libkrb5-dev  # This is needed for installing pykerberos
       - name: Install python dependencies
-        run: poetry install
+        run: uv sync
         working-directory: ./python
       - name: Run python tests
-        run: poetry run pytest
+        run: uv run pytest
         working-directory: ./python
 
       - name: Build python package
-        run: poetry build
+        run: uv build
         working-directory: ./python
       - name: Publish to PyPI
-        run: poetry publish -u '__token__' -p '${{ secrets.PYPI_TOKEN }}'
+        run: uv publish --token '${{ secrets.PYPI_TOKEN }}'
         working-directory: ./python
 
       - name: Set up Apache Maven Central
