@@ -113,7 +113,7 @@ object DruidDatasetExtensions {
       df.withColumn("__num_rows__",
         row_number()
           .over(Window.partitionBy("__PARTITION_TIME__")
-            .orderBy("__PARTITION_TIME__")))
+            .orderBy(df.columns.map(col): _*)))
       .withColumn("__PARTITION_NUM__",
         ((col("__num_rows__") - 1) / lit(rowsPerSegment))
           .cast(DataTypes.IntegerType))
