@@ -30,6 +30,7 @@ case class KpiRow(date: String, country: String, dau: Integer, revenue: Double, 
 case class RowWithUnsupportedType(date: String, country: String, dau: Integer, values: Array[Long])
 case class PartitionedRow(date: String, country: String, dau: Integer, revenue: Double, `__PARTITION_NUM__`: Integer)
 case class ExpectedRow(`__PARTITION_TIME__`: String, `__PARTITION_NUM__`: Integer, count: Integer)
+case class CountryWithPartition(country: String, `__PARTITION_NUM__`: Integer)
 
 // This is needed for mvn test. It wouldn't find this test otherwise.
 @RunWith(classOf[JUnitRunner])
@@ -215,6 +216,34 @@ class DruidDatasetExtensionsSpec extends AnyFlatSpec with Matchers with BeforeAn
       ExpectedRow(`__PARTITION_TIME__`="2019-10-16 00:00:03", `__PARTITION_NUM__`=0, count=1)
     ).toDS
       .withColumn("__PARTITION_TIME__", '__PARTITION_TIME__.cast(DataTypes.TimestampType))
+
+    assertEqual(expected, result)
+  }
+
+  it should "assign rows to partitions deterministically based on sorted column values" in {
+    // All rows share the same timestamp, so partition assignment is determined by the other
+    // columns (country in this case). With sort by all columns, alphabetical order of country
+    // determines row_number: DE=1, FI=2, GB=3, US=4. With rowsPerSegment=2:
+    // partition 0 = DE, FI; partition 1 = GB, US.
+    // This test would fail non-deterministically with the old orderBy("__PARTITION_TIME__")
+    // since that provided no meaningful ordering within the partition.
+    val result = Seq(
+      KpiRow(date="2019-10-14 00:00:00", country="US", dau=20, revenue=20.0, is_segmented=false),
+      KpiRow(date="2019-10-14 00:00:00", country="GB", dau=20, revenue=20.0, is_segmented=false),
+      KpiRow(date="2019-10-14 00:00:00", country="FI", dau=20, revenue=20.0, is_segmented=false),
+      KpiRow(date="2019-10-14 00:00:00", country="DE", dau=20, revenue=20.0, is_segmented=false),
+    ).toDS
+      .withColumn("date", 'date.cast(DataTypes.TimestampType))
+      .repartitionByDruidSegmentSize("date", "WEEK", 2)
+      .select('country, '__PARTITION_NUM__)
+      .as[CountryWithPartition]
+
+    val expected = Seq(
+      CountryWithPartition(country="DE", `__PARTITION_NUM__`=0),
+      CountryWithPartition(country="FI", `__PARTITION_NUM__`=0),
+      CountryWithPartition(country="GB", `__PARTITION_NUM__`=1),
+      CountryWithPartition(country="US", `__PARTITION_NUM__`=1),
+    ).toDS
 
     assertEqual(expected, result)
   }
