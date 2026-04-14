@@ -14,56 +14,47 @@
 # limitations under the License.
 #
 
-[tool.poetry]
+[project]
 name = "rovio-ingest"
-# NOTE: This version is ignored.
-# - Versions are managed by poetry-dynamic-versioning
-# - Git tags are used to create new releases
-version = "0.0.1"
+dynamic = ["version"]
 description = ""
 license = "Apache-2.0"
-authors = ["Vivek Balakrishnan <vivek.balakrishnan@rovio.com>", "Juho Autio <juho.autio@rovio.com>"]
+authors = [
+    {name = "Vivek Balakrishnan", email = "vivek.balakrishnan@rovio.com"},
+    {name = "Juho Autio", email = "juho.autio@rovio.com"},
+]
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "pyspark>=3.4.1,<4.0",  # PySpark 3.x requires Python <3.13
+]
 
-[tool.poetry.dependencies]
-# cryptography requires Python !=3.9.0,!=3.9.1
-python = ">3.9.1,<4.0"
-pyspark = "^3.4.1"
+[dependency-groups]
+dev = [
+    "pytest>=8.3.3",
+    "pandas>=2.0.0",
+    "numpy>=2.0.0",
+    "jupyter>=1.1.1",
+    "sparkmagic>=0.21.0",
+    "boto3>=1.35.19",
+    "safety>=3.2.7",
+]
 
-[tool.poetry.dev-dependencies]
-pytest = "8.3.3"
-pandas = ">=1.5.3,<2.0.0"
-numpy = ">=1.26.4,<2.0.0"
-jupyter = "1.1.1"
-sparkmagic = "0.21.0"
-boto3 = "1.35.19"
-safety = "3.2.7"
-# Not directly depending on tornado. Set version explicitly to fix vulnerabilities.
-tornado = ">=6.5"
-# Not directly depending on cryptography. Set version explicitly to fix vulnerabilities.
-cryptography=">=44.0.1"
-# Not directly depending on h11. Set version explicitly to fix vulnerabilities.
-h11=">=0.16.0"
-# Not directly depending on setuptools. Set version explicitly to fix vulnerabilities.
-setuptools=">=78.1.1"
-# Not directly depending on jinja2. Set version explicitly to fix vulnerabilities.
-jinja2=">=3.1.6"
-
-[tool.poetry-dynamic-versioning]
+[tool.uv-dynamic-versioning]
 enable = true
-metadata = true
+metadata = false
 dirty = true
+bump = true
 vcs = "git"
 style = "pep440"
-format-jinja = """
-    {%- if distance == 0 -%}
-        {{ serialize_pep440(base, stage, revision) }}
-    {%- elif revision is not none -%}
-        {{ serialize_pep440(base, stage, revision + 1, dev=distance) }}
-    {%- else -%}
-        {{ serialize_pep440(bump_version(base), stage, revision, dev=distance) }}
-    {%- endif -%}
- """
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+default = true
+
