@@ -39,6 +39,13 @@ dev = [
     "safety>=3.2.7",
 ]
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    # PySpark uses deprecated pandas APIs internally (distutils.version.LooseVersion,
+    # is_datetime64tz_dtype). If fixed in a future PySpark version, remove this filter.
+    "ignore::DeprecationWarning:pyspark",
+]
+
 [tool.uv-dynamic-versioning]
 enable = true
 metadata = false
