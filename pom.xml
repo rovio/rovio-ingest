@@ -49,7 +49,7 @@
 
     <properties>
         <druid.version>29.0.0</druid.version>
-        <mysql.connector.version>8.0.28</mysql.connector.version>
+        <mysql.connector.version>9.2.0</mysql.connector.version>
         <postgresql.version>42.6.1</postgresql.version>
         <aws.sdk.version>1.12.261</aws.sdk.version>
         <java.version>1.8</java.version>
@@ -222,8 +222,8 @@
             <version>${druid.version}</version>
         </dependency>
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
             <version>${mysql.connector.version}</version>
         </dependency>
         <dependency>
@@ -423,7 +423,7 @@
                                     </excludes>
                                 </filter>
                                 <filter>
-                                    <artifact>mysql:mysql-connector-java</artifact>
+                                    <artifact>com.mysql:mysql-connector-j</artifact>
                                     <includes>
                                         <include>**</include>
                                     </includes>
