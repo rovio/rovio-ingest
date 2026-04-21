@@ -61,13 +61,27 @@
         <junit-platform.version>1.0.1</junit-platform.version>
         <scala.version>2.12</scala.version>
         <scala.minor.version>17</scala.minor.version>
-        <spark.version>3.4.1</spark.version>
+        <spark.version>3.5.7</spark.version>
+        <spark.testing.base.version>3.5.6_3.0.1</spark.testing.base.version>
         <surefire.version>3.0.0-M5</surefire.version>
         <testcontainers.version>1.19.3</testcontainers.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <log4j.version>2.25.4</log4j.version>
+        <datasketches.version>4.2.0</datasketches.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Force datasketches-java to the version Druid 29 was compiled against.
+                 spark-catalyst 3.5.7 pulls in 3.3.0 which is missing org.apache.datasketches.common.Family. -->
+            <dependency>
+                <groupId>org.apache.datasketches</groupId>
+                <artifactId>datasketches-java</artifactId>
+                <version>${datasketches.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -99,57 +113,57 @@
                     <artifactId>log4j</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a newer version than what spark 3.4.1 brings -->
+                    <!-- Druid needs 0.9.49; Spark 3.5.7 brings 0.9.45 -->
                     <groupId>org.roaringbitmap</groupId>
                     <artifactId>RoaringBitmap</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
+                    <!-- We explicitly manage Jackson at ${jackson.version}; Spark 3.5.7 brings 2.15.2 -->
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-annotations</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
+                    <!-- We explicitly manage Jackson at ${jackson.version}; Spark 3.5.7 brings 2.15.2 -->
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
+                    <!-- We explicitly manage Jackson at ${jackson.version}; Spark 3.5.7 brings 2.15.2 -->
                     <groupId>com.fasterxml.jackson.module</groupId>
                     <artifactId>jackson-module-scala_2.12</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
+                    <!-- We explicitly manage Jackson at ${jackson.version}; Spark 3.5.7 brings 2.15.2 -->
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-core</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
+                    <!-- Spark 3.5.7 does not bring this; exclusion is defensive -->
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-joda</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
+                    <!-- Spark 3.5.7 does not bring this; exclusion is defensive -->
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-guava</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
+                    <!-- Spark 3.5.7 does not bring this; exclusion is defensive -->
                     <groupId>com.fasterxml.jackson.jaxrs</groupId>
                     <artifactId>jackson-jaxrs-json-provider</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
+                    <!-- Spark 3.5.7 does not bring this; exclusion is defensive -->
                     <groupId>com.fasterxml.jackson.jaxrs</groupId>
                     <artifactId>jackson-jaxrs-smile-provider</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
+                    <!-- Spark 3.5.7 does not bring this; exclusion is defensive -->
                     <groupId>com.fasterxml.jackson.dataformat</groupId>
                     <artifactId>jackson-dataformat-smile</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid library needs a older version than what spark 3.4.1 brings -->
+                    <!-- We explicitly declare antlr4-runtime at ${antlr4.version}; Druid needs 4.5.3 -->
                     <groupId>org.antlr</groupId>
                     <artifactId>antlr4-runtime</artifactId>
                 </exclusion>
@@ -266,7 +280,7 @@
         <dependency>
             <groupId>com.holdenkarau</groupId>
             <artifactId>spark-testing-base_${scala.version}</artifactId>
-            <version>${spark.version}_1.4.7</version>
+            <version>${spark.testing.base.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
