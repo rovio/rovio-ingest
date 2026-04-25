@@ -26,11 +26,11 @@ jobs:
           # uv-dynamic-versioning needs the full history. latest commit is not enough.
           fetch-depth: '0'
 
-      - name: Set up JDK 8
+      - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
           distribution: 'adopt'
-          java-version: '8'
+          java-version: '17'
       - name: Run maven tests & package
         run: mvn -B package --file pom.xml
 
