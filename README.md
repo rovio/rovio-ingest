@@ -37,7 +37,7 @@ Overview diagram:
 
 rovio-ingest requires
 * Apache Spark 3*
-* JDK8 (8u92+ or later).
+* JDK 17 or later.
 * Python >=3.11 (for the Python package). Note: Spark 3.x may not work with Python >3.12.
 * Linux or MacOS.
 * Git repo must be cloned under a path that doesn't have spaces.
