@@ -18,6 +18,9 @@ on:
 jobs:
   test-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # required for PyPI Trusted Publishing (OIDC)
+      contents: read
     steps:
       - name: Set Environment variables
         run: echo "SPARK_LOCAL_IP=localhost" >> $GITHUB_ENV
@@ -55,7 +58,7 @@ jobs:
         run: uv build
         working-directory: ./python
       - name: Publish to PyPI
-        run: uv publish --token '${{ secrets.PYPI_TOKEN }}'
+        run: uv publish --trusted-publishing always
         working-directory: ./python
 
       - name: Set up Apache Maven Central
