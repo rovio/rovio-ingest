@@ -78,6 +78,14 @@ import static org.junit.Assert.assertEquals;
 @Testcontainers
 public class DruidSourceBaseTest extends SharedJavaSparkContext {
 
+    static {
+        // Some Docker daemons enforce a minimum API version (>= 1.40) and reject the
+        // docker-java client's default of 1.32. Negotiate a widely-supported value.
+        if (System.getProperty("api.version") == null) {
+            System.setProperty("api.version", "1.41");
+        }
+    }
+
     public static final String segmentsTable = MetadataStorageTablesConfig.fromBase("druid").getSegmentsTable();
 
     public static final String DATA_SOURCE = "temp";
