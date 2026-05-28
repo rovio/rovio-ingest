@@ -386,13 +386,6 @@
                         </goals>
                     </execution>
                 </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.scala-sbt</groupId>
-                        <artifactId>compiler-bridge_2.11</artifactId>
-                        <version>1.5.7</version>
-                    </dependency>
-                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
