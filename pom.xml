@@ -477,6 +477,15 @@
                                         <include>org.roaringbitmap.**</include>
                                     </includes>
                                 </relocation>
+                                <relocation>
+                                    <!-- EMR 7.x / Spark 3.5 ships its own org.apache.datasketches on the
+                                         cluster classpath, which shadows the version druid-datasketches was
+                                         compiled against (NoSuchMethodError DoublesUnion.union(DoublesSketch)).
+                                         Relocate so Druid's aggregators bind to the bundled copy. Covers both
+                                         datasketches-java and datasketches-memory. -->
+                                    <pattern>org.apache.datasketches</pattern>
+                                    <shadedPattern>repackaged.org.apache.datasketches</shadedPattern>
+                                </relocation>
                             </relocations>
                         </configuration>
                     </execution>
