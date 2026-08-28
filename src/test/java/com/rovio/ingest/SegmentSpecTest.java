@@ -17,6 +17,7 @@ package com.rovio.ingest;
 
 import com.rovio.ingest.model.SegmentSpec;
 import org.apache.druid.data.input.impl.DimensionSchema;
+import org.apache.druid.data.input.impl.StringDimensionSchema;
 import org.apache.druid.java.util.common.granularity.Granularity;
 import org.apache.druid.query.aggregation.DoubleMinAggregatorFactory;
 import org.apache.druid.query.aggregation.DoubleSumAggregatorFactory;
@@ -407,4 +408,84 @@ public class SegmentSpecTest {
         assertEquals(6, dimensions.size());
     }
 
+
+    @Test
+    public void shouldWriteNamedArrayOfStringAsMultiValueDimension() {
+        StructType schema = new StructType()
+                .add("date", DataTypes.DateType)
+                .add("country", DataTypes.StringType)
+                .add("user_segments", DataTypes.createArrayType(DataTypes.StringType))
+                .add("experiments", DataTypes.createArrayType(DataTypes.StringType))
+                .add("metric", DataTypes.LongType);
+
+        SegmentSpec spec = SegmentSpec.from("temp", "date", Collections.singletonList(""), "DAY", "DAY", schema,
+                false, null, null, null, Collections.singletonList("user_segments"), "SORTED_ARRAY");
+        List<DimensionSchema> dimensions = spec.getDataSchema().getDimensionsSpec().getDimensions();
+
+        DimensionSchema multiValue = dimensions.stream()
+                .filter(d -> d.getName().equals("user_segments")).findFirst().orElseThrow(AssertionError::new);
+        assertTrue(multiValue instanceof StringDimensionSchema);
+        assertEquals("string", multiValue.getTypeName());
+        assertEquals(DimensionSchema.MultiValueHandling.SORTED_ARRAY, multiValue.getMultiValueHandling());
+
+        // an array column that was not named keeps the existing ARRAY behaviour
+        DimensionSchema array = dimensions.stream()
+                .filter(d -> d.getName().equals("experiments")).findFirst().orElseThrow(AssertionError::new);
+        assertEquals(ValueType.ARRAY, array.getColumnType().getType());
+    }
+
+    @Test
+    public void shouldKeepArrayBehaviourWhenNoMultiValueDimensionsRequested() {
+        StructType schema = new StructType()
+                .add("date", DataTypes.DateType)
+                .add("country", DataTypes.StringType)
+                .add("user_segments", DataTypes.createArrayType(DataTypes.StringType));
+
+        SegmentSpec spec = SegmentSpec.from("temp", "date", Collections.singletonList(""), "DAY", "DAY", schema,
+                false, null);
+        DimensionSchema dimension = spec.getDataSchema().getDimensionsSpec().getDimensions().stream()
+                .filter(d -> d.getName().equals("user_segments")).findFirst().orElseThrow(AssertionError::new);
+
+        assertEquals(ValueType.ARRAY, dimension.getColumnType().getType());
+    }
+
+    @Test
+    public void shouldHonourRequestedMultiValueHandling() {
+        StructType schema = new StructType()
+                .add("date", DataTypes.DateType)
+                .add("country", DataTypes.StringType)
+                .add("user_segments", DataTypes.createArrayType(DataTypes.StringType));
+
+        SegmentSpec spec = SegmentSpec.from("temp", "date", Collections.singletonList(""), "DAY", "DAY", schema,
+                false, null, null, null, Collections.singletonList("user_segments"), "SORTED_SET");
+        DimensionSchema dimension = spec.getDataSchema().getDimensionsSpec().getDimensions().stream()
+                .filter(d -> d.getName().equals("user_segments")).findFirst().orElseThrow(AssertionError::new);
+
+        assertEquals(DimensionSchema.MultiValueHandling.SORTED_SET, dimension.getMultiValueHandling());
+    }
+
+    @Test
+    public void shouldRejectNonStringArrayAsMultiValueDimension() {
+        StructType schema = new StructType()
+                .add("date", DataTypes.DateType)
+                .add("country", DataTypes.StringType)
+                .add("counts", DataTypes.createArrayType(DataTypes.LongType));
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> SegmentSpec.from("temp", "date", Collections.singletonList(""), "DAY", "DAY", schema,
+                        false, null, null, null, Collections.singletonList("counts"), "SORTED_ARRAY"));
+        assertTrue(e.getMessage().contains("can only contain strings"));
+    }
+
+    @Test
+    public void shouldRejectUnknownMultiValueDimension() {
+        StructType schema = new StructType()
+                .add("date", DataTypes.DateType)
+                .add("country", DataTypes.StringType);
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> SegmentSpec.from("temp", "date", Collections.singletonList(""), "DAY", "DAY", schema,
+                        false, null, null, null, Collections.singletonList("nope"), "SORTED_ARRAY"));
+        assertTrue(e.getMessage().contains("is not present in the schema"));
+    }
 }
