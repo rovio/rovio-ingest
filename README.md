@@ -9,7 +9,7 @@ For example, this allows reading an [Apache Hive™](https://hive.apache.org/) t
 - [Overview](#overview)
 - [Software requirements](#software-requirements)
 - [Motivation](#motivation)
-- [Dataset extension](#dataset-extension)
+- [Dataset preparation](#dataset-preparation)
 - [Data type conversions](#data-type-conversions)
 - [Segment granularity](#segment-granularity)
 - [Usage](#usage)
@@ -36,13 +36,11 @@ Overview diagram:
 ## Software requirements
 
 rovio-ingest requires
-* Apache Spark 3*
+* Apache Spark 3.5 or 4.x.
 * JDK 17 or later.
 * Python >=3.11 (for the Python package). Note: Spark 3.x may not work with Python >3.12.
 * Linux or MacOS.
 * Git repo must be cloned under a path that doesn't have spaces.
-
-*) Spark 2 is not supported, but feel free to create a Github issue if you would need that.
 
 ## Motivation
 
@@ -56,15 +54,15 @@ To summarize, these are the features that `rovio-ingest` addresses, that are lac
 * Flexibility to use latest Apache Druid libraries.
 * Update Apache Druid segments in transaction, leveraging Apache Druid's segment locking mechanism.
 
-## Dataset extension
+## Dataset preparation
 
-The Dataset extension performs the following validations:
+The Dataset helper performs the following validations:
 * Type of `time_column` is `Date` or `Timestamp`
 * The Dataset has one or more metric columns if rollup is enabled
 * The Dataset has one or more dimension columns
 * The Dataset has no columns with unknown types, unless `excludeColumnsWithUnknownTypes` is set to true
 
-The Dataset extension performs the following transformations:
+The Dataset helper performs the following transformations:
 * Drops all columns of complex datatypes such as `StructType` or `MapType` as they
 are not supported by `DruidSource`. This is only done if `excludeColumnsWithUnknownTypes` is set to true, otherwise validation has already failed.
 * `ArrayType` is supported with `StringType`, `LongType` and `DoubleType`
@@ -99,14 +97,14 @@ The `com.rovio.ingest.DruidSource` expects that only one task writes out segment
 time interval and granularity. This is so that the task correctly shards DataSegments into requisite
 partitions based on segment size configuration. It is the responsibility of Spark program to
 correctly partition the dataset based on time interval first, which is handled by the provided
-Dataset extensions of `rovio-ingest`.
+Dataset helper of `rovio-ingest`.
 
 ## Usage
 
 Code snippets for different languages are provided below.
 
 The main steps are always the same:
-1. The provided Dataset extension is first used to validate and repartition a Dataset so that it
+1. The provided Dataset helper is first used to validate and repartition a Dataset so that it
 satisfies the requirements of `DruidSource`
 1. Then the Dataset can be written with the `DruidSource` format
 
@@ -146,7 +144,7 @@ Set the following spark conf:
 
 ```python
 .conf("spark.jars.packages",
-      "com.rovio.ingest:rovio-ingest:1.0.8_spark_3.4.1") \
+      "com.rovio.ingest:rovio-ingest:1.0.9") \
 ```
 
 #### PySpark job example
@@ -201,27 +199,20 @@ df.repartition_by_druid_segment_size(partition_col) \
 
 ### Scala
 
-Maven: see [Java](#java).
-
-A `Dataset[Row]` extension is provided to repartition the dataset for the `DruidSource` Datasource.
+A Java utility is provided to repartition a `Dataset[Row]` for the `DruidSource` DataSource. Its
+static API works from Scala without linking the artifact to a particular Scala binary version.
 
 For an interactive spark session you can set the following spark conf:
 
 ```scala
-("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.0.8_spark_3.4.1")
-```
-
-To use a snapshot version:
-
-```scala
-("spark.jars.repositories", "https://s01.oss.sonatype.org/content/repositories/snapshots"),
-("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.0.9_spark_3.4.1-SNAPSHOT")
+("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.0.9")
 ```
 
 ```scala
 import org.apache.spark.sql.{Dataset, Row, SaveMode, SparkSession}
-import com.rovio.ingest.extensions.DruidDatasetExtensions._
+import com.rovio.ingest.DruidSource
 import com.rovio.ingest.WriterContext.ConfKeys
+import com.rovio.ingest.extensions.java.DruidDatasetExtensions
 
 val ds: Dataset[Row] = ???
 
@@ -234,11 +225,14 @@ val options = Map[String, String](
   ConfKeys.DEEP_STORAGE_S3_BASE_KEY -> "druid/prod/segments"
 )
 
-ds.repartitionByDruidSegmentSize("date")
+DruidDatasetExtensions.repartitionByDruidSegmentSize(ds, "date")
   .write
   .mode(SaveMode.Overwrite)
   .options(options)
-  .druid("target-datasource-name-in-druid", timeColumn="date")
+  .option(ConfKeys.DATA_SOURCE, "target-datasource-name-in-druid")
+  .option(ConfKeys.TIME_COLUMN, "date")
+  .format(classOf[DruidSource].getCanonicalName)
+  .save()
 ```
 
 This is a minimal example. See [Write options](#write-options) for more.
@@ -251,7 +245,7 @@ Maven (for a full example, see [examples/rovio-ingest-maven-example](examples/ro
         <dependency>
             <groupId>com.rovio.ingest</groupId>
             <artifactId>rovio-ingest</artifactId>
-            <version>1.0.7_spark_3.4.1</version>
+            <version>1.0.9</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -261,7 +255,7 @@ Maven (for a full example, see [examples/rovio-ingest-maven-example](examples/ro
         </dependency>
     </dependencies>
 
-A `DruidDataset` wrapper class is provided to repartition the dataset for the `DruidSource` DataSource.
+`DruidDatasetExtensions` provides static methods to repartition the dataset for the `DruidSource` DataSource.
 
 ```java
 import org.apache.spark.sql.Dataset;
@@ -388,7 +382,7 @@ Storage.
 
 The tests use [TestContainers](https://www.testcontainers.org/) and require [Docker](https://docs.docker.com/engine/install/) running on the local machine.
 
-#### Java / Scala
+#### Java
 
 Project is managed by Maven (pom.xml).
 
@@ -398,7 +392,11 @@ To build the project
 
 To run tests
 
-    mvn test
+    mvn package
+
+To run the Spark 3.5 / Scala 2.12 compatibility build
+
+    mvn package -Pspark-3
 
 #### Python
 

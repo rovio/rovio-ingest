@@ -23,7 +23,7 @@
 
     <groupId>com.rovio.ingest</groupId>
     <artifactId>rovio-ingest</artifactId>
-    <version>1.0.9_spark_3.4.1-SNAPSHOT</version>
+    <version>1.0.9-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>rovio-ingest</name>
     <description>An implementation of the DatasourceV2 interface of Apache Spark™ for writing Spark Datasets to Apache Druid™</description>
@@ -53,47 +53,50 @@
         <postgresql.version>42.7.11</postgresql.version>
         <aws.sdk.version>1.12.261</aws.sdk.version>
         <java.version>17</java.version>
-        <antlr4.version>4.9.3</antlr4.version>
         <jackson.version>2.18.6</jackson.version>
         <slf4j.version>2.0.12</slf4j.version>
         <junit-jupiter.version>5.7.2</junit-jupiter.version>
-        <junit.version>4.13.2</junit.version>
-        <junit-platform.version>1.0.1</junit-platform.version>
-        <scala.version>2.12</scala.version>
-        <scala.minor.version>17</scala.minor.version>
-        <spark.version>3.5.7</spark.version>
-        <spark.testing.base.version>3.5.6_3.0.1</spark.testing.base.version>
+        <scala.version>2.13</scala.version>
+        <spark.version>4.0.0</spark.version>
+        <spark.testing.base.version>4.0.0_2.1.3</spark.testing.base.version>
         <surefire.version>3.0.0-M5</surefire.version>
         <testcontainers.version>1.19.3</testcontainers.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <log4j.version>2.25.4</log4j.version>
         <datasketches.version>4.2.0</datasketches.version>
+        <datasketches.memory.version>2.2.0</datasketches.memory.version>
+        <antlr4.version>4.13.1</antlr4.version>
+        <druid.antlr4.version>4.5.3</druid.antlr4.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- Force datasketches-java to the version Druid 29 was compiled against.
-                 spark-catalyst 3.5.7 pulls in 3.3.0 which is missing org.apache.datasketches.common.Family. -->
+            <!-- Versions used by Druid 29 -->
             <dependency>
                 <groupId>org.apache.datasketches</groupId>
                 <artifactId>datasketches-java</artifactId>
                 <version>${datasketches.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.datasketches</groupId>
+                <artifactId>datasketches-memory</artifactId>
+                <version>${datasketches.memory.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
     <dependencies>
         <dependency>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4-runtime</artifactId>
+            <version>${antlr4.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
             <version>${log4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-            <version>${scala.version}.${scala.minor.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -113,59 +116,54 @@
                     <artifactId>log4j</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Druid needs 0.9.49; Spark 3.5.7 brings 0.9.45 -->
+                    <!-- Druid requires 0.9.49; Spark supplies its own version -->
                     <groupId>org.roaringbitmap</groupId>
                     <artifactId>RoaringBitmap</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- We explicitly manage Jackson at ${jackson.version}; Spark 3.5.7 brings 2.15.2 -->
+                    <!-- We explicitly manage Jackson at ${jackson.version}; Spark supplies its own version -->
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-annotations</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- We explicitly manage Jackson at ${jackson.version}; Spark 3.5.7 brings 2.15.2 -->
+                    <!-- We explicitly manage Jackson at ${jackson.version}; Spark supplies its own version -->
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- We explicitly manage Jackson at ${jackson.version}; Spark 3.5.7 brings 2.15.2 -->
+                    <!-- We explicitly manage Jackson at ${jackson.version}; Spark supplies its own version -->
                     <groupId>com.fasterxml.jackson.module</groupId>
-                    <artifactId>jackson-module-scala_2.12</artifactId>
+                    <artifactId>jackson-module-scala_${scala.version}</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- We explicitly manage Jackson at ${jackson.version}; Spark 3.5.7 brings 2.15.2 -->
+                    <!-- We explicitly manage Jackson at ${jackson.version}; Spark supplies its own version -->
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-core</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Spark 3.5.7 does not bring this; exclusion is defensive -->
+                    <!-- Exclusion is defensive -->
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-joda</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Spark 3.5.7 does not bring this; exclusion is defensive -->
+                    <!-- Exclusion is defensive -->
                     <groupId>com.fasterxml.jackson.datatype</groupId>
                     <artifactId>jackson-datatype-guava</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Spark 3.5.7 does not bring this; exclusion is defensive -->
+                    <!-- Exclusion is defensive -->
                     <groupId>com.fasterxml.jackson.jaxrs</groupId>
                     <artifactId>jackson-jaxrs-json-provider</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Spark 3.5.7 does not bring this; exclusion is defensive -->
+                    <!-- Exclusion is defensive -->
                     <groupId>com.fasterxml.jackson.jaxrs</groupId>
                     <artifactId>jackson-jaxrs-smile-provider</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- Spark 3.5.7 does not bring this; exclusion is defensive -->
+                    <!-- Exclusion is defensive -->
                     <groupId>com.fasterxml.jackson.dataformat</groupId>
                     <artifactId>jackson-dataformat-smile</artifactId>
-                </exclusion>
-                <exclusion>
-                    <!-- We explicitly declare antlr4-runtime at ${antlr4.version}; Druid needs 4.5.3 -->
-                    <groupId>org.antlr</groupId>
-                    <artifactId>antlr4-runtime</artifactId>
                 </exclusion>
             </exclusions>
             <scope>provided</scope>
@@ -301,12 +299,6 @@
             <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- The trick with the 3 dependencies below is that this way mvn test is able
-             to find & execute both scalatests (via junit 4) as well as java tests that
-             use junit 5 annotations.
-             By default surefire uses junit 5 platform, which doesn't find the scalatest
-             code (junit 4 runner would work without this) -->
-        <!-- JUnit Jupiter Engine to depend on the JUnit5 engine and JUnit 5 API -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
@@ -317,20 +309,6 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
             <version>${junit-jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <!-- JUnit Jupiter Engine to depend on the JUnit4 engine and JUnit 4 API  -->
-        <dependency>
-            <groupId>org.junit.vintage</groupId>
-            <artifactId>junit-vintage-engine</artifactId>
-            <version>${junit-jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <!-- Override the JUnit 4 API version provided by junit-vintage-engine -->
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -352,41 +330,12 @@
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-scala_${scala.version}</artifactId>
             <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.antlr</groupId>
-            <artifactId>antlr4-runtime</artifactId>
-            <version>${antlr4.version}</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>net.alchim31.maven</groupId>
-                <artifactId>scala-maven-plugin</artifactId>
-                <version>4.5.3</version>
-                <configuration>
-                    <scalaVersion>${scala.version}.${scala.minor.version}</scalaVersion>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>scala-compile-first</id>
-                        <phase>process-resources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>scala-test-compile</id>
-                        <phase>process-test-resources</phase>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -406,7 +355,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.3</version>
+                <version>3.6.2</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -415,6 +364,9 @@
                         </goals>
                         <configuration>
                             <minimizeJar>true</minimizeJar>
+                            <extraArtifacts>
+                                <extraArtifact>org.antlr:antlr4-runtime:${druid.antlr4.version}</extraArtifact>
+                            </extraArtifacts>
                             <filters>
                                 <filter>
                                     <!-- Do not copy the signatures in the META-INF folder.
@@ -479,6 +431,10 @@
                                     <pattern>org.apache.datasketches</pattern>
                                     <shadedPattern>repackaged.org.apache.datasketches</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>org.antlr.v4</pattern>
+                                    <shadedPattern>repackaged.org.antlr.v4</shadedPattern>
+                                </relocation>
                             </relocations>
                         </configuration>
                     </execution>
@@ -526,12 +482,6 @@
                         --add-opens=java.base/sun.util.calendar=ALL-UNNAMED
                         --add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED
                     </argLine>
-                    <!-- By default maven only finds *Test (may depend on maven version)
-                         Make sure *Spec is included -->
-                    <includes>
-                        <include>**/*Test.*</include>
-                        <include>**/*Spec.*</include>
-                    </includes>
                 </configuration>
             </plugin>
             <plugin>
@@ -540,7 +490,19 @@
                 <version>${surefire.version}</version>
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
+                    <systemPropertyVariables>
+                        <shadedJar>${project.build.directory}/${project.build.finalName}.jar</shadedJar>
+                    </systemPropertyVariables>
                 </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>com.mycila</groupId>
@@ -640,6 +602,18 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>spark-3</id>
+            <properties>
+                <scala.version>2.12</scala.version>
+                <spark.version>3.5.7</spark.version>
+                <spark.testing.base.version>3.5.6_3.0.1</spark.testing.base.version>
+                <antlr4.version>4.9.3</antlr4.version>
+            </properties>
+        </profile>
+    </profiles>
 
     <reporting>
         <plugins>

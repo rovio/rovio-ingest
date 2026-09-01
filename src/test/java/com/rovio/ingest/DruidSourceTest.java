@@ -32,7 +32,6 @@ import org.joda.time.chrono.ISOChronology;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
-import scala.collection.JavaConverters;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -48,8 +47,7 @@ import static org.apache.spark.sql.functions.callUDF;
 import static org.apache.spark.sql.functions.column;
 import static org.apache.spark.sql.functions.lit;
 import static org.apache.spark.sql.functions.unix_timestamp;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class DruidSourceTest extends DruidSourceBaseTest {
@@ -59,7 +57,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
         Dataset<Row> dataset = loadCsv(spark, "/data.csv");
         IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
                 () -> dataset.write().format("com.rovio.ingest.DruidSource").mode(SaveMode.Append).save());
-        assertThat(thrown.getMessage(), containsString("Missing mandatory \"druid.datasource\" option"));
+        assertTrue(thrown.getMessage().contains("Missing mandatory \"druid.datasource\" option"));
     }
 
     @Test
@@ -73,7 +71,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
                         .options(options)
                         .save());
 
-        assertThat(thrown.getMessage(), containsString("Initializing datasource with append write mode is not supported"));
+        assertTrue(thrown.getMessage().contains("Initializing datasource with append write mode is not supported"));
     }
 
     @Test
@@ -82,8 +80,8 @@ public class DruidSourceTest extends DruidSourceBaseTest {
         options.put(SEGMENT_VERSION, "invalid-version-format");
         IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
                 () -> dataset.write().format("com.rovio.ingest.DruidSource").mode(SaveMode.Overwrite).options(options).save());
-        assertThat(thrown.getMessage(),
-                containsString("\"druid.segment_version\" should be timestamp in ISO8601 format (yyyy-MM-ddTHH:mm:ss.SSSZZ)"));
+        assertTrue(thrown.getMessage().contains(
+                "\"druid.segment_version\" should be timestamp in ISO8601 format (yyyy-MM-ddTHH:mm:ss.SSSZZ)"));
     }
 
     @Test
@@ -97,7 +95,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
 
         options.put(PARTITION_NUM_START, "-1");
         IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, runJob);
-        assertThat(thrown.getMessage(), containsString("\"druid.partition_num_start\" should be >= 0"));
+        assertTrue(thrown.getMessage().contains("\"druid.partition_num_start\" should be >= 0"));
     }
 
     @Test
@@ -113,8 +111,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
                         .mode(SaveMode.Overwrite)
                         .options(options)
                         .save());
-        assertThat(thrown.getCause().getMessage(), containsString(
-                "Null value for column 'date'."));
+        assertTrue(thrown.getCause().getMessage().contains("Null value for column 'date'."));
     }
 
     @Test
@@ -280,8 +277,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
         Dataset<Row> dataset = loadCsv(spark, "/data.csv");
         List<Column> columns = Lists.newArrayList(unix_timestamp(column("date")).multiply(1000), lit("DAY"));
         dataset = dataset.withColumn("__partition",
-                callUDF("normalizeTimeColumn",
-                        JavaConverters.asScalaIteratorConverter(columns.iterator()).asScala().toSeq()));
+                callUDF("normalizeTimeColumn", columns.toArray(new Column[0])));
 
         dataset = dataset.repartition(column("__partition"));
         dataset.show(false);
@@ -304,8 +300,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
         Dataset<Row> dataset = loadCsv(spark, "/data.csv");
         List<Column> columns = Lists.newArrayList(unix_timestamp(column("date")).multiply(1000), lit("MONTH"));
         dataset = dataset.withColumn("__partition",
-                callUDF("normalizeTimeColumn",
-                        JavaConverters.asScalaIteratorConverter(columns.iterator()).asScala().toSeq()));
+                callUDF("normalizeTimeColumn", columns.toArray(new Column[0])));
 
         dataset = dataset.repartition(column("__partition"));
         dataset.show(false);
@@ -329,8 +324,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
         Dataset<Row> dataset = loadCsv(spark, "/data.csv");
         List<Column> columns = Lists.newArrayList(unix_timestamp(column("date")).multiply(1000), lit("DAY"));
         dataset = dataset.withColumn("__partition",
-                callUDF("normalizeTimeColumn",
-                        JavaConverters.asScalaIteratorConverter(columns.iterator()).asScala().toSeq()));
+                callUDF("normalizeTimeColumn", columns.toArray(new Column[0])));
 
         dataset = dataset.repartition(column("__partition"));
         dataset.show(false);
@@ -354,8 +348,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
         Dataset<Row> dataset = loadCsv(spark, "/data.csv");
         List<Column> columns = Lists.newArrayList(unix_timestamp(column("date")).multiply(1000), lit("DAY"));
         dataset = dataset.withColumn("__PARTITION_TIME__",
-                callUDF("normalizeTimeColumn",
-                        JavaConverters.asScalaIteratorConverter(columns.iterator()).asScala().toSeq())
+                callUDF("normalizeTimeColumn", columns.toArray(new Column[0]))
                         .divide(1000)
                         .cast(DataTypes.TimestampType));
 
@@ -382,8 +375,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
         Dataset<Row> dataset = loadCsv(spark, "/data.csv");
         List<Column> columns = Lists.newArrayList(unix_timestamp(column("date")).multiply(1000), lit("DAY"));
         dataset = dataset.withColumn("__partition",
-                callUDF("normalizeTimeColumn",
-                        JavaConverters.asScalaIteratorConverter(columns.iterator()).asScala().toSeq()));
+                callUDF("normalizeTimeColumn", columns.toArray(new Column[0])));
 
         dataset = dataset.repartition(column("__partition"));
         dataset.show(false);
@@ -404,8 +396,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
         dataset2.show(false);
         columns = Lists.newArrayList(unix_timestamp(column("date")).multiply(1000), lit("DAY"));
         dataset2 = dataset2.withColumn("__partition",
-                callUDF("normalizeTimeColumn",
-                        JavaConverters.asScalaIteratorConverter(columns.iterator()).asScala().toSeq()));
+                callUDF("normalizeTimeColumn", columns.toArray(new Column[0])));
 
         dataset2 = dataset2.repartition(dataset2.col("__partition"));
         dataset2.show(false);
@@ -432,8 +423,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
         Dataset<Row> dataset = loadCsv(spark, "/data.csv");
         List<Column> columns = Lists.newArrayList(unix_timestamp(column("date")).multiply(1000), lit("DAY"));
         dataset = dataset.withColumn("__partition",
-                callUDF("normalizeTimeColumn",
-                        JavaConverters.asScalaIteratorConverter(columns.iterator()).asScala().toSeq()));
+                callUDF("normalizeTimeColumn", columns.toArray(new Column[0])));
 
         dataset = dataset.repartition(column("__partition"));
         dataset.show(false);
@@ -454,8 +444,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
         dataset.show(false);
         columns = Lists.newArrayList(unix_timestamp(column("date")).multiply(1000), lit("MONTH"));
         dataset = dataset.withColumn("__partition",
-                callUDF("normalizeTimeColumn",
-                        JavaConverters.asScalaIteratorConverter(columns.iterator()).asScala().toSeq()));
+                callUDF("normalizeTimeColumn", columns.toArray(new Column[0])));
 
         Dataset<Row> dataset2 = dataset.repartition(dataset.col("__partition"));
         dataset2.show(false);
@@ -481,8 +470,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
         Dataset<Row> dataset = loadCsv(spark, "/data.csv");
         List<Column> columns = Lists.newArrayList(unix_timestamp(column("date")).multiply(1000), lit("DAY"));
         dataset = dataset.withColumn("__partition",
-                callUDF("normalizeTimeColumn",
-                        JavaConverters.asScalaIteratorConverter(columns.iterator()).asScala().toSeq()));
+                callUDF("normalizeTimeColumn", columns.toArray(new Column[0])));
 
         dataset = dataset.repartition(column("__partition"));
         dataset.show(false);
@@ -503,8 +491,7 @@ public class DruidSourceTest extends DruidSourceBaseTest {
         dataset2.show(false);
         columns = Lists.newArrayList(unix_timestamp(column("date")).multiply(1000), lit("MONTH"));
         dataset2 = dataset2.withColumn("__partition",
-                callUDF("normalizeTimeColumn",
-                        JavaConverters.asScalaIteratorConverter(columns.iterator()).asScala().toSeq()));
+                callUDF("normalizeTimeColumn", columns.toArray(new Column[0])));
 
         dataset2 = dataset2.repartition(dataset2.col("__partition"));
         dataset2.show(false);
