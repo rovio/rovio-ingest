@@ -6,10 +6,10 @@ resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32'",
-    "python_full_version < '3.12' and sys_platform == 'win32'",
     "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
-    "python_full_version < '3.12' and sys_platform == 'emscripten'",
     "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.12' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and sys_platform == 'emscripten'",
     "python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
@@ -584,7 +584,7 @@ name = "gssapi"
 version = "1.11.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "decorator", marker = "sys_platform != 'win32'" },
+    { name = "decorator" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/23/52/c1e90623c259a42ab0587078bb04f959867b970add46ff66750ead8fc7c5/gssapi-1.11.1.tar.gz", hash = "sha256:2049ee4b1d0c363163a1344b7282a363f9f4094e51d2c36de0cf01d4735e0ae2", size = 95233, upload-time = "2026-01-26T21:01:39.463Z" }
 wheels = [
@@ -703,17 +703,17 @@ resolution-markers = [
     "python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "colorama", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
-    { name = "decorator", marker = "python_full_version < '3.12'" },
-    { name = "ipython-pygments-lexers", marker = "python_full_version < '3.12'" },
-    { name = "jedi", marker = "python_full_version < '3.12'" },
-    { name = "matplotlib-inline", marker = "python_full_version < '3.12'" },
-    { name = "pexpect", marker = "python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'" },
-    { name = "prompt-toolkit", marker = "python_full_version < '3.12'" },
-    { name = "pygments", marker = "python_full_version < '3.12'" },
-    { name = "stack-data", marker = "python_full_version < '3.12'" },
-    { name = "traitlets", marker = "python_full_version < '3.12'" },
-    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "decorator" },
+    { name = "ipython-pygments-lexers" },
+    { name = "jedi" },
+    { name = "matplotlib-inline" },
+    { name = "pexpect", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "prompt-toolkit" },
+    { name = "pygments" },
+    { name = "stack-data" },
+    { name = "traitlets" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c5/25/daae0e764047b0a2480c7bbb25d48f4f509b5818636562eeac145d06dfee/ipython-9.10.1.tar.gz", hash = "sha256:e170e9b2a44312484415bdb750492699bf329233b03f2557a9692cce6466ada4", size = 4426663, upload-time = "2026-03-27T09:53:26.244Z" }
 wheels = [
@@ -733,16 +733,16 @@ resolution-markers = [
     "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "colorama", marker = "python_full_version >= '3.12' and sys_platform == 'win32'" },
-    { name = "decorator", marker = "python_full_version >= '3.12'" },
-    { name = "ipython-pygments-lexers", marker = "python_full_version >= '3.12'" },
-    { name = "jedi", marker = "python_full_version >= '3.12'" },
-    { name = "matplotlib-inline", marker = "python_full_version >= '3.12'" },
-    { name = "pexpect", marker = "python_full_version >= '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'" },
-    { name = "prompt-toolkit", marker = "python_full_version >= '3.12'" },
-    { name = "pygments", marker = "python_full_version >= '3.12'" },
-    { name = "stack-data", marker = "python_full_version >= '3.12'" },
-    { name = "traitlets", marker = "python_full_version >= '3.12'" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "decorator" },
+    { name = "ipython-pygments-lexers" },
+    { name = "jedi" },
+    { name = "matplotlib-inline" },
+    { name = "pexpect", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "prompt-toolkit" },
+    { name = "pygments" },
+    { name = "stack-data" },
+    { name = "traitlets" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/3a/73/7114f80a8f9cabdb13c27732dce24af945b2923dcab80723602f7c8bc2d8/ipython-9.12.0.tar.gz", hash = "sha256:01daa83f504b693ba523b5a407246cabde4eb4513285a3c6acaff11a66735ee4", size = 4428879, upload-time = "2026-03-27T09:42:45.312Z" }
 wheels = [
@@ -1311,17 +1311,18 @@ wheels = [
 
 [[package]]
 name = "nltk"
-version = "3.9.4"
+version = "3.10.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
+    { name = "defusedxml" },
     { name = "joblib" },
     { name = "regex" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/74/a1/b3b4adf15585a5bc4c357adde150c01ebeeb642173ded4d871e89468767c/nltk-3.9.4.tar.gz", hash = "sha256:ed03bc098a40481310320808b2db712d95d13ca65b27372f8a403949c8b523d0", size = 2946864, upload-time = "2026-03-24T06:13:40.641Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e0/e6/fe51d2bb1a3b446f59c5c8165999a9fee208bc346af90a7cbf7657bc0d75/nltk-3.10.3.tar.gz", hash = "sha256:bb9327a461c3811c2fa4900e03840401f2126adfb30c0072827c433bd2444ea4", size = 5137152, upload-time = "2026-08-12T23:46:37.258Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9d/91/04e965f8e717ba0ab4bdca5c112deeab11c9e750d94c4d4602f050295d39/nltk-3.9.4-py3-none-any.whl", hash = "sha256:f2fa301c3a12718ce4a0e9305c5675299da5ad9e26068218b69d692fda84828f", size = 1552087, upload-time = "2026-03-24T06:13:38.47Z" },
+    { url = "https://files.pythonhosted.org/packages/b6/6d/ebd2af4640b12168fdf0cb74b6118df2f32a2f62ec7e0c06fbfd80706639/nltk-3.10.3-py3-none-any.whl", hash = "sha256:ff9598a8e20518ee0d557745890cc4435b9578489e2dcbc69c4f81fa060caf7c", size = 1798643, upload-time = "2026-08-12T23:44:13.478Z" },
 ]
 
 [[package]]
@@ -1526,7 +1527,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "ptyprocess" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450, upload-time = "2023-11-25T09:07:26.339Z" }
 wheels = [
