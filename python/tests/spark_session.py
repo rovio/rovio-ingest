@@ -43,15 +43,6 @@ def _rovio_ingest_classpath() -> str:
     """
     Read classpath of the local rovio-ingest project, including the locally compiled classes.
 
-    Note that pyspark 2.4.4 comes with spark jars with specific scala version, for example:
-
-        rovio-ingest/python/venv/lib/python3.9/site-packages/pyspark/jars/spark-core_2.11-2.4.4.jar
-
-    Thus, pyspark is incompatible with scala 2.12 and only works with scala 2.11.
-
-    This means that these pyspark wrappers have not been tested against scala 2.12. However, they may still work as long
-    as all jars are with the same scala version.
-
     Classpath file can be refreshed manually by running `mvn generate-sources`.
     However, that's only needed if making changes to dependencies, and `mvn compile` includes it as well.
     """
