@@ -73,7 +73,7 @@ import java.util.stream.Collectors;
 import static com.rovio.ingest.DataSegmentCommitMessage.MAPPER;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static org.apache.spark.sql.functions.column;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Testcontainers
 public class DruidSourceBaseTest extends SharedJavaSparkContext {

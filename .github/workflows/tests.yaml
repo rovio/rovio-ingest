@@ -15,7 +15,7 @@ jobs:
           distribution: 'adopt'
           java-version: '17'
       - name: Run maven tests
-        run: mvn -B test --file pom.xml
+        run: mvn -B package --file pom.xml
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
@@ -27,8 +27,10 @@ jobs:
       - name: Install libkrb5-dev
         run: sudo apt-get install libkrb5-dev  # This is needed for installing pykerberos
       - name: Install python dependencies
-        run: uv sync
+        run: uv sync --locked
         working-directory: ./python
       - name: Run python tests
         run: uv run pytest
         working-directory: ./python
+      - name: Run Spark 3 compatibility tests
+        run: mvn -B clean package -Pspark-3 --file pom.xml
