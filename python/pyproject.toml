@@ -35,7 +35,6 @@ dev = [
     "jupyter>=1.1.1",
     "sparkmagic>=0.21.0",
     "boto3>=1.35.19",
-    "safety>=3.2.7",
     "setuptools>=84.1.0",
 ]
 
