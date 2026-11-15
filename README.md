@@ -215,7 +215,7 @@ To use a snapshot version:
 
 ```scala
 ("spark.jars.repositories", "https://s01.oss.sonatype.org/content/repositories/snapshots"),
-("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.1.0_spark_3.5.8")
+("spark.jars.packages", "com.rovio.ingest:rovio-ingest:1.1.1_spark_3.5.8-SNAPSHOT")
 ```
 
 ```scala
