@@ -68,6 +68,12 @@ The Dataset extension performs the following transformations:
 * Drops all columns of complex datatypes such as `StructType` or `MapType` as they
 are not supported by `DruidSource`. This is only done if `excludeColumnsWithUnknownTypes` is set to true, otherwise validation has already failed.
 * `ArrayType` is supported with `StringType`, `LongType` and `DoubleType`
+    - By default an `ArrayType` column becomes a Druid [ARRAY](https://druid.apache.org/docs/latest/querying/arrays/)
+      column (dimension type `auto`). `GROUP BY` on an ARRAY groups on the whole array as a single value.
+    - Name an `ArrayType(StringType)` column in `druid.multi_value_dimensions` to write it as a Druid
+      [multi-value dimension](https://druid.apache.org/docs/latest/querying/multi-value-dimensions/)
+      (dimension type `string`) instead. `GROUP BY` on a multi-value dimension implicitly unnests, and value
+      filters match a row if any of its values match. Pick this if existing queries rely on that behaviour.
 * Converts `Date`/`Timestamp` type columns to `String`, except for the `time_column`
     - See [Druid Docs / Data types](https://druid.apache.org/docs/latest/querying/sql.html#standard-types)
 * Adds a new column `__PARTITION_TIME__` whose value is based on `time_column` column and the given [segment granularity](#segment-granularity)
@@ -357,6 +363,8 @@ These are the options for `DruidSource`, to be passed with `write.options()`.
 | `druid.segment_granularity` | Segment Granularity | `DAY` |
 | `druid.query_granularity` | Query granularity | `DAY` |
 | `druid.exclude_dimensions` | Comma separated list of Spark input columns that have to be excluded in Druid ingestion | |
+| `druid.multi_value_dimensions` | Comma separated list of `ArrayType(StringType)` input columns to write as Druid [multi-value dimensions](https://druid.apache.org/docs/latest/querying/multi-value-dimensions/) instead of [ARRAY](https://druid.apache.org/docs/latest/querying/arrays/) columns. Druid multi-value dimensions can only contain strings, so naming an array of longs or doubles is an error. | |
+| `druid.multi_value_handling` | How Druid stores the values of a multi-value dimension: `SORTED_ARRAY`, `SORTED_SET` or `ARRAY`. Only applies to columns named in `druid.multi_value_dimensions`. | `SORTED_ARRAY` |
 | `druid.segment.max_rows` | Max number of rows per segment | `5000000` |
 | `druid.memory.max_rows` | Max number of rows to keep in memory in spark data writer | `75000` |
 | `druid.segment_storage.type` | Type of Deep Storage to use. Allowed values: `s3`, `local`, `hdfs`, `azure`. | `s3` |

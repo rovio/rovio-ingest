@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -68,12 +69,15 @@ public class SegmentSpec implements Serializable {
     private final String dimensionsSpec;
     private final String metricsSpec;
     private final String transformSpec;
+    private final List<String> multiValueDimensions;
+    private final String multiValueHandling;
     private final Set<String> complexMetricColumns;
     private final Set<String> complexDimensionColumns;
 
     private SegmentSpec(String dataSource, String timeColumn, String segmentGranularity, String queryGranularity,
                         List<Field> fields, Field partitionTime, Field partitionNum, boolean rollup,
-                        String dimensionsSpec, String metricsSpec, String transformSpec) {
+                        String dimensionsSpec, String metricsSpec, String transformSpec,
+                        List<String> multiValueDimensions, String multiValueHandling) {
         this.dataSource = dataSource;
         this.timeColumn = timeColumn;
         this.segmentGranularity = segmentGranularity;
@@ -85,6 +89,8 @@ public class SegmentSpec implements Serializable {
         this.dimensionsSpec = dimensionsSpec;
         this.metricsSpec = metricsSpec;
         this.transformSpec = transformSpec;
+        this.multiValueDimensions = multiValueDimensions == null ? ImmutableList.of() : multiValueDimensions;
+        this.multiValueHandling = multiValueHandling;
         this.complexMetricColumns = Arrays
                 .stream(getAggregators())
                 .filter(aggregatorFactory -> aggregatorFactory.getIntermediateType().is(ValueType.COMPLEX))
@@ -99,12 +105,20 @@ public class SegmentSpec implements Serializable {
 
     public static SegmentSpec from(String datasource, String timeColumn, List<String> excludedDimensions,
             String segmentGranularity, String queryGranularity, StructType schema, boolean rollup, String metricsSpec) {
-        return from(datasource, timeColumn, excludedDimensions, segmentGranularity, queryGranularity, schema, rollup, null, metricsSpec, null);
+        return from(datasource, timeColumn, excludedDimensions, segmentGranularity, queryGranularity, schema, rollup, null, metricsSpec, null, null, null);
     }
 
     public static SegmentSpec from(String datasource, String timeColumn, List<String> excludedDimensions,
                                    String segmentGranularity, String queryGranularity, StructType schema, boolean rollup,
                                    String dimensionsSpec, String metricsSpec, String transformSpec) {
+        return from(datasource, timeColumn, excludedDimensions, segmentGranularity, queryGranularity, schema, rollup,
+                dimensionsSpec, metricsSpec, transformSpec, null, null);
+    }
+
+    public static SegmentSpec from(String datasource, String timeColumn, List<String> excludedDimensions,
+                                   String segmentGranularity, String queryGranularity, StructType schema, boolean rollup,
+                                   String dimensionsSpec, String metricsSpec, String transformSpec,
+                                   List<String> multiValueDimensions, String multiValueHandling) {
         Preconditions.checkNotNull(datasource);
         Preconditions.checkNotNull(timeColumn);
         Preconditions.checkNotNull(excludedDimensions);
@@ -137,6 +151,16 @@ public class SegmentSpec implements Serializable {
         Preconditions.checkArgument(fields.stream().anyMatch(f -> f.getFieldType() == FieldType.STRING || f.getFieldType() == FieldType.ARRAY_OF_STRING),
                 "Schema has no dimensions");
 
+        for (String multiValueDimension : multiValueDimensions == null ? ImmutableList.<String>of() : multiValueDimensions) {
+            Optional<Field> declared = fields.stream().filter(f -> f.getName().equals(multiValueDimension)).findFirst();
+            Preconditions.checkArgument(declared.isPresent(),
+                    String.format("Multi-value dimension \"%s\" is not present in the schema", multiValueDimension));
+            Preconditions.checkArgument(declared.get().getFieldType() == FieldType.ARRAY_OF_STRING,
+                    String.format("Multi-value dimension \"%s\" must be an array of strings but is %s. "
+                                    + "Druid multi-value dimensions can only contain strings.",
+                            multiValueDimension, declared.get().getFieldType()));
+        }
+
         Preconditions.checkArgument(!rollup || fields.stream().anyMatch(f -> f.getFieldType() == FieldType.LONG || f.getFieldType() == FieldType.DOUBLE),
                 "Schema has rollup enabled but has no metrics");
 
@@ -150,7 +174,7 @@ public class SegmentSpec implements Serializable {
                     String.format("Field with name \"%s\" should be long/int type, current type is %s", PARTITION_NUM_COLUMN_NAME, partitionNum.getFieldType().name()));
         }
 
-        return new SegmentSpec(datasource, timeColumn, segmentGranularity, queryGranularity, fields, partitionTime, partitionNum, rollup, dimensionsSpec, metricsSpec, transformSpec);
+        return new SegmentSpec(datasource, timeColumn, segmentGranularity, queryGranularity, fields, partitionTime, partitionNum, rollup, dimensionsSpec, metricsSpec, transformSpec, multiValueDimensions, multiValueHandling);
     }
 
     public String getTimeColumn() {
@@ -204,6 +228,12 @@ public class SegmentSpec implements Serializable {
         }
     }
 
+    private DimensionSchema.MultiValueHandling resolveMultiValueHandling() {
+        return multiValueHandling == null
+                ? DimensionSchema.MultiValueHandling.ofDefault()
+                : DimensionSchema.MultiValueHandling.fromString(multiValueHandling);
+    }
+
     private ImmutableList<DimensionSchema> getDimensionSchemas() {
         ImmutableList.Builder<DimensionSchema> builder = ImmutableList.builder();
         AggregatorFactory[] aggregators = getAggregators();
@@ -225,7 +255,11 @@ public class SegmentSpec implements Serializable {
                 } else if (field.getFieldType() == FieldType.TIMESTAMP) {
                     builder.add(new LongDimensionSchema(fieldName));
                 } else if (field.getFieldType() == FieldType.ARRAY_OF_STRING) {
-                    builder.add(new AutoTypeColumnSchema(fieldName, ColumnType.STRING_ARRAY));
+                    if (multiValueDimensions.contains(fieldName)) {
+                        builder.add(new StringDimensionSchema(fieldName, resolveMultiValueHandling(), true));
+                    } else {
+                        builder.add(new AutoTypeColumnSchema(fieldName, ColumnType.STRING_ARRAY));
+                    }
                 } else if (field.getFieldType() == FieldType.ARRAY_OF_DOUBLE) {
                     builder.add(new AutoTypeColumnSchema(fieldName,  ColumnType.DOUBLE_ARRAY));
                 } else if (field.getFieldType() == FieldType.ARRAY_OF_LONG) {

@@ -22,6 +22,7 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
@@ -38,6 +39,7 @@ public class WriterContext implements Serializable {
     public static final String DEFAULT_DRUID_DEEP_STORAGE_TYPE = "s3";
     // concise was the default until now, next release it is going to change to roaring bitmapserde
     public static final String DEFAULT_BITMAP_FACTORY = "concise";
+    public static final String DEFAULT_MULTI_VALUE_HANDLING = "SORTED_ARRAY";
 
     private final String dataSource;
     private final String timeColumn;
@@ -45,6 +47,8 @@ public class WriterContext implements Serializable {
     private final String queryGranularity;
     private final String bitmapFactory;
     private final List<String> excludedDimensions;
+    private final List<String> multiValueDimensions;
+    private final String multiValueHandling;
     private final int segmentMaxRows;
     private final int maxRowsInMemory;
     private final String metadataDbType;
@@ -92,6 +96,8 @@ public class WriterContext implements Serializable {
         this.queryGranularity = options.getOrDefault(ConfKeys.QUERY_GRANULARITY, DEFAULT_QUERY_GRANULARITY);
         this.bitmapFactory = options.getOrDefault(ConfKeys.BITMAP_FACTORY, DEFAULT_BITMAP_FACTORY);
         this.excludedDimensions = Arrays.asList(options.getOrDefault(ConfKeys.EXCLUDED_DIMENSIONS, "").split(","));
+        this.multiValueDimensions = splitToNonEmptyList(options.getOrDefault(ConfKeys.MULTI_VALUE_DIMENSIONS, ""));
+        this.multiValueHandling = options.getOrDefault(ConfKeys.MULTI_VALUE_HANDLING, DEFAULT_MULTI_VALUE_HANDLING);
 
         int segmentMaxRows = options.getInt(ConfKeys.SEGMENT_MAX_ROWS, DEFAULT_MAX_ROWS_PER_SEGMENT);
         if (segmentMaxRows > DEFAULT_MAX_ROWS_PER_SEGMENT || segmentMaxRows <= 0) {
@@ -171,6 +177,8 @@ public class WriterContext implements Serializable {
         this.queryGranularity = context.queryGranularity;
         this.bitmapFactory = context.bitmapFactory;
         this.excludedDimensions = context.excludedDimensions;
+        this.multiValueDimensions = context.multiValueDimensions;
+        this.multiValueHandling = context.multiValueHandling;
         this.segmentMaxRows = context.segmentMaxRows;
         this.maxRowsInMemory = context.maxRowsInMemory;
 
@@ -262,6 +270,21 @@ public class WriterContext implements Serializable {
 
     public List<String> getExcludedDimensions() {
         return excludedDimensions;
+    }
+
+    public List<String> getMultiValueDimensions() {
+        return multiValueDimensions;
+    }
+
+    public String getMultiValueHandling() {
+        return multiValueHandling;
+    }
+
+    private static List<String> splitToNonEmptyList(String value) {
+        return Arrays.stream(value.split(","))
+                .map(String::trim)
+                .filter(part -> !part.isEmpty())
+                .collect(Collectors.toList());
     }
 
     public int getSegmentMaxRows() {
@@ -440,6 +463,8 @@ public class WriterContext implements Serializable {
         public static final String QUERY_GRANULARITY = "druid.query_granularity";
         public static final String BITMAP_FACTORY = "druid.bitmap_factory";
         public static final String EXCLUDED_DIMENSIONS = "druid.exclude_dimensions";
+        public static final String MULTI_VALUE_DIMENSIONS = "druid.multi_value_dimensions";
+        public static final String MULTI_VALUE_HANDLING = "druid.multi_value_handling";
         public static final String SEGMENT_MAX_ROWS = "druid.segment.max_rows";
         public static final String MAX_ROWS_IN_MEMORY = "druid.memory.max_rows";
         public static final String SEGMENT_ROLLUP = "druid.segment.rollup";
